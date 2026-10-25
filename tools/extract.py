@@ -161,7 +161,7 @@ def dump(rom, force=False):
                         "en": prev.get("en", ""), "notes": prev.get("notes", "")})
         path.parent.mkdir(exist_ok=True)
         text = re.sub(r"\[\s+(\d+),\s+(\d+)\s+\]", r"[\1, \2]", json.dumps(out, indent=1, ensure_ascii=False))
-        path.write_text(text + "\n", encoding="utf-8")
+        path.write_text(text + "\n", encoding="utf-8", newline="\n")
         print(f"{path.name}: {len(out)} entries")
 
 
