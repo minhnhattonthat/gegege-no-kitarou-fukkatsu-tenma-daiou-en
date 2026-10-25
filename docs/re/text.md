@@ -18,6 +18,20 @@ and new tilemaps offline and repacking the category (no text engine to patch). -
 Map header: byte 0 = width in tiles, byte 2 = height (words). Glyph sheets: a 16x16 glyph uses tiles t, t+1 (top)
 and t+16, t+17 (bottom). Line spacing in captions is 16 px: 4 lines per page, 32 tiles wide.
 
+Caption tiles $2E0 / $2E1 (sheet 20_002) are never drawn: every caption line but the last ends in $2E0, every page
+in $2E1, and tour shots show no tile there, so the reveal routine reads them as line-end / page-end codes. An English
+sheet must keep them at those ids (or the routine be patched). - verified (screenshot cut3 f675; routine not traced)
+
+Glyph tables: `tbl/captions.tbl` (20_002), `tbl/intro.tbl` (20_000), format in `tools/extract.py`. Sheet 20_002
+draws ー and 一 with one glyph ($0AE), and its カ ($104) is only used as 力. Two map cells have no glyph: page 10's
+comma has a blank top (0/$2D1 instead of $2C1/$2D1), page 46 has 8 blank tiles with both flip bits ($C000). The
+intro map sets priority ($2000) on every glyph word; its 。、 are bottom-only tiles ($010, $011 under a blank).
+Roundtrip: `tests/test_extract.py`. - verified
+
+Staff roll 24_003 (glyphs 24_002): 9 screens back to back, each `[w, h]` (words) then w*h BG words. - verified
+(each screen rendered with `render_map.render(font, words, 0, w)` reads as a credits page; transcribed in
+`script/labels.json` G9.0-G9.8)
+
 Captions 20, 32 and 46 are not referenced by any `e8 NN 25` in the scripts (probably unused; translate anyway).
 
 ## Cutscene script VM - verified

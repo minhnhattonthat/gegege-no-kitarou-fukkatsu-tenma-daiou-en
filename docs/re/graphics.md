@@ -13,7 +13,7 @@ tour. Formats: planar = SNES 2/4bpp tiles; linear = packed 4bpp, converted by `$
 | G4 | title menu 一人でガンバル / 力を合わせる | 1A_001 (and 22_002 scroll sprite) | linear 4bpp | BG1 title screen | `title` | redraw: 1 Player / 2 Players (co-op) |
 | G5 | title copyright ©水木プロ・東映動画 | 1A_001 | linear 4bpp | BG1 title | `title` | redraw: (c) Mizuki Pro / Toei Animation |
 | G6 | title logo ゲゲゲの鬼太郎 / 復活!天魔大王 | 1A_001 | linear 4bpp | BG1 title | `title` | keep Japanese (no official English logo; D5) |
-| G7 | options menu 難易度 / 画面? / 音楽 / 効果音 / 仲間選択 / ふつう / なし ... | 27_004 glyphs (+ 27_005 map) | planar 2bpp | title + Select | `options` | re-render glyphs + map |
+| G7 | options menu 難易度 (難しい / ふつう / 易しい) / 面選択 / 音楽 / 効果音 / 仲間の選択 (する / しない) | 27_004 glyphs (+ 27_005 map) | planar 2bpp | title + Select | `options` | re-render glyphs + map |
 | G8 | partner select: names and moves (子泣きじじい, 砂かけばばあ, ねずみ男, シーサー, 地獄童子, 必殺技, 火炎, 突進, おなら, 仲間を...) | 1C_000 | linear 4bpp | partner screen 仲間を選んでね: 2P co-op with option 仲間の選択 on, after the card | `coop` | redraw labels |
 | G9 | staff roll (監督, 演出, プログラム, ... names, 水木しげる, 東映動画, バンダイ; INTERBEC logo); also おわり after the ending captions | 24_002 glyphs (+ 24_000/001/003/004, `$82:BF11`) | planar 2bpp | after the ending | `ending` | English credits (D3), romanised names |
 | G10 | boss-name banners (たんたん坊 ... フランケンシュタイン ... 天魔大王), one strip per boss | 01_000 (raw) | planar 2bpp | DMA to VRAM $5008 when the boss appears; pointer in each stage record (ram.md) | `boss0`..`boss18` | re-render strips |

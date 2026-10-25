@@ -24,4 +24,6 @@ Addresses are for the dump in `rom.sha1` (LoROM, 1 MiB, no SRAM, no copier heade
 - `tools/lua/ramwrites.lua` (every write to a WRAM range), `declog.lua` (every decompression: source, dest),
   `scriptlog.lua` (every cutscene opcode fetched).
 - `tools/archive.py`, `tools/lzh.py`, `tools/render_map.py`, `tools/sweep.py`.
+- `tools/extract.py` (glyph-table codec for caption/intro maps: `dump`, `unknown SET OUT.png` = labelled sheet of
+  glyphs a table doesn't cover yet).
 - `tools/build.py` (archive repack, relocation to the 2 MiB area), `tools/cmpdirs.py` (pixel diff of two emu runs).
