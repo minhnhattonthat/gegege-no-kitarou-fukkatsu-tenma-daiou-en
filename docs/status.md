@@ -2,8 +2,9 @@
 
 Updated at the end of every session. Keep it to what the next session needs; history is in git.
 
-- **Phase:** 4 (extract) done; next is 5 (engine spike and marker build). Last build: `build/kitarou_en.sfc` =
-  original (sha1 0451530f..., smoke ok, 2026-10-26).
+- **Phase:** 5 (engine spike + marker build) done; next is 6 (translate). Last builds (2026-10-26):
+  `build/marker.sfc` (`build.py build/marker.sfc --marker`, smoke ok, every page shows its id) and
+  `build/ruler.sfc` (`--ruler`, width gate).
 - **Done:**
   - Step 0: repo set up (ROM pinned as `rom/kitarou.sfc`, MesenCE 2.2.1 in `tools/mesen/`, pre-commit runs
     `tools/check.py`, guard hook verified).
@@ -20,19 +21,26 @@ Updated at the end of every session. Keep it to what the next session needs; his
     `script/labels.json`: hand transcription of all graphics text (cards, title, options, partner select, staff
     roll 9 screens, 18 boss banners, game over, shop sign). Tokens: `{br}`/`{end}` = caption line/page codes
     ($2E0/$2E1, never drawn), `{alien1-4}` = invented alien script. Notes: `docs/re/text.md`.
-- **Next (phase 5, engine spike + marker build):**
-  - English caption renderer: 8x16 (or 8x8 on 16 px lines) font into a new 20_002 sheet, keep $2E0/$2E1 as the
-    line/page codes, re-encode maps with `extract.encode`-style layout (32 cols x 4 lines; lines may start at rows
-    0-6), recompress, `build.build` with $20 relocated. Marker build: each page shows its id (`20_005`), the intro
-    letter its line numbers. Verify with the tour (cut3..cut10, intro) that every page shows its marker, and
-    that the reveal routine handles the new code positions.
-  - Width gate: measure usable columns per caption page (32 tiles, text seen at cols 4-30) and per intro line.
+  - Phase 5: VWF without engine code. `fonts/caption.txt` (drawn, 1 bpp proportional, `tools/font.py`);
+    `tools/insert.py` renders each caption page pixel-exact into tiles, packs pages into shared sheets (blocks
+    20_068+; block indices must stay < 128, the loader counts in a signed byte) and a JSL hook at `$82:B857` ->
+    `$BF:FF00` reads the page -> sheet table at `$BF:FF40`. Intro letter: same font into 20_000/20_001, one line
+    per Japanese slot. Reveal walker `$80:EE02` modelled in `tests/test_insert.py` (every built page reveals every
+    cell). Width gate in `docs/re/text.md` (224 px; 4 lines, 2 on the 6 "low" pages, 20_051 fixed 48 px box;
+    intro 17 lines x 224 px). `tools/debug/pages.py` shoots every page at its page end (warp.lua logs
+    `page end at fF`): `work/qa/pages_marker/pages.png` = all 60 pages with their ids; torture line on 20_003.
+- **Next (phase 6, translate):**
+  - Translator input: `script/captions.json` `en` = one string per page (wrapped by `insert.wrap` at 224 px, `{br}`
+    forces a break, max 4 lines / 2 on low pages / 48 px for 20_051; “ starts get a hanging indent);
+    `script/intro.json` `en` = list of 17 lines (224 px each). Write the batch TSVs + a lint (width/lines via
+    `insert.en_lines`, glossary, no JP) into `tools/check.py` before dispatching translators.
   - Graphics labels (cards, title menu, options, game over, boss banners, staff roll) need per-element redraw
     plans; partner screen moves need P2 input to cycle partners (Mesen testRunner has no port 2; warp.lua writes
     `$F1`) to confirm which move belongs to whom.
 - **Gotchas:** Mesen `--testRunner` has no port-2 input (`emu.setInput(x, 1)` lands on P1); warp.lua writes the
   P2 joypad mirror `$F1` instead. The in-game loop checks the stage-clear flag only once the HUD is up. Pressing
-  right/down on the partner screen with P1 input does nothing.
+  right/down on the partner screen with P1 input does nothing. Caption page time is reveal-driven (8 frames per
+  2 columns, then a ~60-frame hold), so long pages just play longer; 20_051 is the exception (fixed copies).
 - **Open bugs:** none.
 - **Waiting on the user:** nothing blocking. Non-blocking: (1) shop signs in cutscene art 18_013 (テレビ, さくらや,
   NIPPO): default = テレビ -> TV only, keep store names. (2) Boss banners 15/16 (5-1, 5-2) and caption 27/50 use an

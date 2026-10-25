@@ -81,6 +81,8 @@ on_load(0x20, nil, function(i)
     if plan.cut or SC == "intro" then arrive("text block 20_" .. string.format("%03d", i)) end
   end
 end)
+-- The caption reveal reached the page-end code ($80:EE37): the whole page is on screen from the next frame.
+L.on_exec(0x80EE37, 0x80EE37, function() L.log(string.format("page end at f%d", L.frame)) end)
 if plan.coop then on_load(0x1C, 0, function() arrive("partner select (1C_000 loaded)") end) end
 on_dma(0x85AC3A, 0x85C039, function(src)
   L.log(string.format("boss banner $85:%04X at f%d", src & 0xFFFF, L.frame))

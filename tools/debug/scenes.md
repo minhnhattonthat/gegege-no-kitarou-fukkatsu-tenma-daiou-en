@@ -10,6 +10,10 @@ Every scene is reached from a cold boot by `tools/debug/warp.lua` (no route, no 
 (regenerate after any code, font or graphics change). Opt-in globals: `GOD=1` pins health, `P2LR=1` holds P2 L+R
 (the game's own stage-select unlock).
 
+`python -X utf8 tools/debug/pages.py ROM` runs the caption scenes (intro, cut3, cut5-10) and keeps one shot per
+caption page right after its reveal ends (`page end at fF` in the warp log): `work/qa/pages/pages.png`. Exit 1 if
+any used page never finishes its reveal.
+
 RAM: `$0539` main mode (4 attract/title, 5 chapter card, 6 options, 3 in game), `$11BD` stage index, `$11C3`
 difficulty (0 easy, 1 normal), `$11D1` game flags (bit $8000 stage clear), `$004E` health (10 per hit).
 Stage index: 0 = 0-1 (prologue), 1-4 = 1-1..1-4, 5-7 = 2-1..2-3, 8-12 = 3-1..3-5, 13-14 = 4-1..4-2,

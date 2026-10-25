@@ -22,6 +22,34 @@ Caption tiles $2E0 / $2E1 (sheet 20_002) are never drawn: every caption line but
 in $2E1, and tour shots show no tile there, so the reveal routine reads them as line-end / page-end codes. An English
 sheet must keep them at those ids (or the routine be patched). - verified (screenshot cut3 f675; routine not traced)
 
+Caption reveal `$80:EE02` - verified (disassembly + `tests/test_insert.py` model, which reveals every Japanese
+cell): it walks the map's top tile rows from the start: tile id 0 is skipped (so a blank cell inside a line must use
+another blank id), id < $2C0 copies 2 columns x 2 rows to VRAM, $2C0-$2DF 1 column, $2E0 jumps to the start of the
+row pair 2 rows down (then skips zeros, so lines may start anywhere), $2E1 ends the page. A step that lands on the
+row end skips the bottom row. The page is closed a fixed ~60 frames after the reveal ends (8 frames per step), so a
+longer line only reveals longer: no time budget per page (cut3 marker: 52 steps, same hold as the Japanese).
+
+Caption loader `$82:B84B`: map 20_nn -> `$7E:E800` (`$82:ACEB`), then `LDA #$0220 / JSR $ACD5` = sheet 20_002 ->
+`$7E:B800`. The archive's block walk (`$82:A1FD`) counts the index down in a signed byte: indices >= 128 load the
+wrong block (20_130 gave 20_001). - verified (declog on the marker build)
+
+English captions (phase 5): `tools/insert.py` renders each page with the proportional font `fonts/caption.txt`
+pixel-exact into tiles, packs several pages per sheet (blocks 20_068 up, <= $2C0 tiles each) and a JSL hook at
+`$82:B857` -> `$BF:FF00` loads the sheet named by the page table at `$BF:FF40` (66 bytes, untranslated pages -> 2).
+
+## Width gate (measured 2026-10-26, ruler build `build.py --ruler`, `tools/debug/pages.py`)
+
+| Variant | Pages | Lines | Width | Evidence |
+|---|---|---|---|---|
+| caption, full | all but the low ones | 4 (rows 0/2/4/6; 1-3 lines at 24 px pitch) | 224 px (x 16-240) | ruler cols 1-30 (x 8-248) visible on all 60 pages: `work/qa/pages_ruler/pages.png` |
+| caption, low | 20_021, 048, 049, 051, 052, 065 (Japanese starts at row >= 4) | 2 (rows 4/6, 1 line at row 5) | 224 px | the scene's picture covers caption rows 0-3 (ruler shots of 065, 048, 049, 052, 021) |
+| caption, fixed | 20_051 おわり (The End) | 1, rows 4-5, columns 21-26 | 48 px | not walked: the ending script ($81:C37E) copies the 3 2-column cells with `F1 04 00 vram src` ops, 60 frames apart (`insert.FIXED`) |
+| intro letter | 20_001 | one per Japanese slot (17; `en` is a list) | 224 px (x 16-240) | intro ruler: all 32 columns visible |
+
+224 px of `fonts/caption.txt` is ~43 average characters. The text is laid out by `insert.wrap` (greedy, `{br}` forces
+a break); a page starting with “ gets a 5 px hanging indent; each page's block is centred in the 224 px. The 8 px
+kept inside the visible 240 px is overscan margin.
+
 Glyph tables: `tbl/captions.tbl` (20_002), `tbl/intro.tbl` (20_000), format in `tools/extract.py`. Sheet 20_002
 draws ー and 一 with one glyph ($0AE), and its カ ($104) is only used as 力. Two map cells have no glyph: page 10's
 comma has a blank top (0/$2D1 instead of $2C1/$2D1), page 46 has 8 blank tiles with both flip bits ($C000). The
