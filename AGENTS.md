@@ -13,7 +13,7 @@ Skill: translate-retro-game; `python tools/skill.py` prints its folder (`$SKILL`
 
 ## Paths
 - Original ROM: `rom/kitarou.sfc` (No-Intro dump renamed; gitignored; SHA-1 in `rom.sha1`, checked by `tools/check_rom.py`). LoROM, 1 MiB, no SRAM. Emulator: this repo's own copy in `tools/mesen/` (MesenCE 2.2.1, https://github.com/nesdev-org/MesenCE/releases/download/2.2.1/Mesen_2.2.1_Windows.zip, `fetch_emu.py mesen`; gitignored; settings in `tools/emu-config/`). Savestates: `work/states/`.
-- Text: `script/`. Tables: `tbl/`. Glossary: `glossary.md`. RE notes index: `docs/re/README.md`. Fonts and their licences: `docs/fonts.md`.
+- Text: `script/` (`tools/tl.py merge|check|pairs`: TSV merge, text lint, reviewer pairs; speakers `docs/synopsis.md`). Tables: `tbl/`. Glossary: `glossary.md`. RE notes index: `docs/re/README.md`. Fonts and their licences: `docs/fonts.md`.
 - `tools/tbl.py`, `bps.py`, `romdiff.py` are copies from the skill so a clone builds without it.
 
 ## Rulings

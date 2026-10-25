@@ -2,7 +2,8 @@
 
 Updated at the end of every session. Keep it to what the next session needs; history is in git.
 
-- **Phase:** 5 (engine spike + marker build) done; next is 6 (translate). Last builds (2026-10-26):
+- **Phase:** 6 (translate) done; next is 7 (insert, fit, check). Last builds (2026-10-26):
+  `build/kitarou_en.sfc` (English captions + letter, smoke ok),
   `build/marker.sfc` (`build.py build/marker.sfc --marker`, smoke ok, every page shows its id) and
   `build/ruler.sfc` (`--ruler`, width gate).
 - **Done:**
@@ -29,14 +30,22 @@ Updated at the end of every session. Keep it to what the next session needs; his
     cell). Width gate in `docs/re/text.md` (224 px; 4 lines, 2 on the 6 "low" pages, 20_051 fixed 48 px box;
     intro 17 lines x 224 px). `tools/debug/pages.py` shoots every page at its page end (warp.lua logs
     `page end at fF`): `work/qa/pages_marker/pages.png` = all 60 pages with their ids; torture line on 20_003.
-- **Next (phase 6, translate):**
-  - Translator input: `script/captions.json` `en` = one string per page (wrapped by `insert.wrap` at 224 px, `{br}`
-    forces a break, max 4 lines / 2 on low pages / 48 px for 20_051; “ starts get a hanging indent);
-    `script/intro.json` `en` = list of 17 lines (224 px each). Write the batch TSVs + a lint (width/lines via
-    `insert.en_lines`, glossary, no JP) into `tools/check.py` before dispatching translators.
-  - Graphics labels (cards, title menu, options, game over, boss banners, staff roll) need per-element redraw
-    plans; partner screen moves need P2 input to cycle partners (Mesen testRunner has no port 2; warp.lua writes
-    `$F1`) to confirm which move belongs to whom.
+  - Phase 6: whole script translated in one batch by the controller (63 caption pages, 17-line letter, every
+    graphics label in `script/labels.json` `en` as a list per `jp`). `tools/tl.py` merge (TSV `id<TAB>EN`, `ID#k`
+    for list lines) / check (lint) / pairs; `tests/test_script.py` gates it (width via `insert.en_lines`, alien
+    tokens, glyphs, glossary terms + Avoid, label charset). `glossary.md` filled (D&Q Kitaro names: Kitaro,
+    Medama Oyaji, Nezumi Otoko...); speakers per page in `docs/synopsis.md`; `docs/reviewer-brief.md`. Reviewer
+    (sonnet): Approved, 0 Critical, 1 Important (unused 20_032, fixed) + minors (most applied). Alien script kept
+    as drawn: glyphs ①-④ in `fonts/caption.txt` (`insert.ALIEN`). `insert.wrap` now balances lines (greedy line
+    count, narrowest width) so no one-word widows. `build/kitarou_en.sfc` smoke ok; all 60 pages shot English and
+    in bounds (`work/qa/pages_en/pages.png`).
+- **Next (phase 7, insert/fit/check):**
+  - Graphics labels (cards, title menu, options, partner select, game over, boss banners, staff roll, shop sign):
+    redraw per element from `labels.json` `en` (sizes in `docs/re/graphics.md`); partner screen moves need P2
+    input to cycle partners (Mesen testRunner has no port 2; warp.lua writes `$F1`) to confirm which move belongs
+    to whom (G8 move names are a guess by kanji meaning).
+  - `romdiff.py` gate in the build: allowed ranges = archive blocks moved/repacked + hook + table at `$BF:FF00+`.
+  - Remaining minors from review (optional polish): 20_018 "the me of this era", 20_061 wraps "Space / yokai".
 - **Gotchas:** Mesen `--testRunner` has no port-2 input (`emu.setInput(x, 1)` lands on P1); warp.lua writes the
   P2 joypad mirror `$F1` instead. The in-game loop checks the stage-clear flag only once the HUD is up. Pressing
   right/down on the partner screen with P1 input does nothing. Caption page time is reveal-driven (8 frames per

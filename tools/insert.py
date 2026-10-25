@@ -94,19 +94,32 @@ class Sheet:
         return out + bytes(size - len(out))
 
 
+def greedy(para, limit, indent, cont):
+    """Greedy word wrap of one paragraph; lines after the first (all of them when `cont`) lose `indent` px."""
+    out, cur = [], ""
+    for word in para.split(" "):
+        cand = f"{cur} {word}" if cur else word
+        if cur and font.width(cand) > limit - (indent if out or cont else 0):
+            out.append(cur)
+            cur = word
+        else:
+            cur = cand
+    out.append(cur)
+    return out
+
+
 def wrap(text, limit, indent=0):
-    """Greedy word wrap to `limit` px; {br} forces a break; continuation lines lose `indent` px."""
+    """Balanced word wrap to `limit` px: each paragraph keeps the greedy line count at the narrowest width that still
+    gives it (no one-word widows); {br} forces a break; continuation lines lose `indent` px."""
     lines = []
     for para in text.split("{br}"):
-        cur = ""
-        for word in para.split(" "):
-            cand = f"{cur} {word}" if cur else word
-            if cur and font.width(cand) > limit - (indent if lines else 0):
-                lines.append(cur)
-                cur = word
-            else:
-                cur = cand
-        lines.append(cur)
+        best = greedy(para, limit, indent, bool(lines))
+        for w in range(limit - 1, 0, -1):
+            cand = greedy(para, w, indent, bool(lines))
+            if len(cand) != len(best):
+                break
+            best = cand
+        lines += best
     return lines
 
 
@@ -184,8 +197,9 @@ def fill(prefix, limit):
 
 
 TORTURE = ["ABCDEFGHIJKLMNOPQRSTUVWXYZ  01234", "abcdefghijklmnopqrstuvwxyz  .,!?'\"“”‘’",
-           "-—:;()…/&~*+%[]_|  56789  It's “Kitarou”!"]  # every glyph, double spaces; shown on the first page
+           "-—:;()…/&~*+%[]_|  56789  ①②③④"]  # every glyph, double spaces; shown on the first page
 assert set("".join(TORTURE)) == set(font.GLYPHS)
+ALIEN = {f"{{alien{k}}}": ch for k, ch in enumerate("①②③④", 1)}  # script token -> its font glyph
 
 
 def marker_lines(eid, low=False):
@@ -197,6 +211,8 @@ def marker_lines(eid, low=False):
 
 
 def en_lines(en, low=False):
+    for token, ch in ALIEN.items():
+        en = en.replace(token, ch)
     indent = font.width("“") + 1 if en.startswith("“") else 0
     lines = wrap(en, MAX_PX["captions"], indent)
     return text_lines(lines, [0] + [indent] * (len(lines) - 1), low)
