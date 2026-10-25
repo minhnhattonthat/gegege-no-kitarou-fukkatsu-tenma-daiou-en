@@ -1,0 +1,6 @@
+# boot to title, press start
+600 -
+6 start
+300 -
+6 start
+600 -

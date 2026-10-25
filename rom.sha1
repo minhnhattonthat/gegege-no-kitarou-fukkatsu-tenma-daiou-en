@@ -1,2 +1,3 @@
-# SHA-1 of the supported dump, in sha1sum format (`sha1sum -c rom.sha1` works too). One line per file for discs.
-<sha1>  rom/<file>
+# SHA-1 of the supported dump, in sha1sum format (`sha1sum -c rom.sha1` works too).
+# No-Intro: Gegege no Kitarou - Fukkatsu! Tenma Daiou (Japan).sfc, 1048576 bytes, headerless. Rename it to rom/kitarou.sfc.
+0451530f6acb855583192d6257182b8d99ec9aa5  rom/kitarou.sfc

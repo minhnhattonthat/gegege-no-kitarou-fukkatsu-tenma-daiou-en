@@ -1,0 +1,13 @@
+{
+  "Debug": {
+    "ScriptWindow": {
+      "AllowIoOsAccess": true
+    }
+  },
+  "Snes": {
+    "Port1": {
+      "Type": "SnesController"
+    }
+  },
+  "ConfigUpgrade": 1
+}
