@@ -7,6 +7,7 @@ Skill: translate-retro-game; `python tools/skill.py` prints its folder (`$SKILL`
 - Check:    `python -X utf8 tools/check.py`  (tests + lint; the pre-commit hook runs this)
 - Smoke:    `python -X utf8 "$(python tools/skill.py)/scripts/emu.py" build/kitarou_en.sfc --out work/qa/smoke --route tools/routes/boot.txt --smoke`
 - Warp:     `python -X utf8 "$(python tools/skill.py)/scripts/emu.py" build/kitarou_en.sfc --out work/qa/warp --script tools/debug/warp.lua --var "SCENE='<name>'" --frames 900 --sheet` (scenes: `tools/debug/scenes.md`; never ask the user to play to a scene)
+- Tour:     `python -X utf8 tools/debug/tour.py [ROM] [--only a,b]` (every scene, arrival check, sheets, `work/states/<scene>.mss`)
 - Release:  `python -X utf8 tools/release.py` (patch + verify; never publish without the user)
 - Clean:    `python -X utf8 tools/clean.py` (published projects: lists rebuildable/downloadable files; `--yes` deletes)
 

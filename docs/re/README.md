@@ -15,6 +15,7 @@ Addresses are for the dump in `rom.sha1` (LoROM, 1 MiB, no SRAM, no copier heade
 | text.md | caption/intro tilemaps (category $20), cutscene script VM, script table, chapter variable | verified |
 | graphics.md | survey of every tile-drawn Japanese element, with sources | verified (static sweep + tour) |
 | layout.md | ROM map and free space | verified |
+| ram.md | RAM map, game flow (stage clear, ending, game over), stage records + boss banners, debug warp | verified (warp tour) |
 
 ## Probes and helpers (repo `tools/`)
 

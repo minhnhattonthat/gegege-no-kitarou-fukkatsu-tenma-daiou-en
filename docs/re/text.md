@@ -35,6 +35,9 @@ Captions 20, 32 and 46 are not referenced by any `e8 NN 25` in the scripts (prob
 
 ## Chapter variable
 
-`$7E:11BD` = chapter (0 = 序章 ... 6 = 最終章), `$11BB` = stage (guess). Writing `$11BD` while a new game starts
-shows that chapter's card (verified for 1); the stage that loads afterwards did not change (the stage pick lives
-elsewhere).
+`$7E:11BD` = stage index 0..18, not the chapter (see ram.md). Writing it at the title before New Game starts that
+stage; the first stage of each chapter (0, 1, 5, 8, 13, 15, 17) shows its card, row = chapter. - verified (`cardN`
+warps)
+
+In-stage captions: the stage scripts (`$81:A1DD`, `$81:DFB2`... `E8 80 25` / `E8 00 25`) also show caption pages
+over gameplay (0-1 boss intro). The warp logs every caption load as `caption 20_NNN at fF`.
