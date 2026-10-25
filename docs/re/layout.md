@@ -16,3 +16,7 @@ No runs of 0x00/0xFF longer than 0x10A bytes inside the 1 MiB image (the longest
 free, filled with 0xFF) and move the rebuilt category $20 (and any other grown category) there by rewriting its
 24-bit entry in the category table at 0x28000. The archive pointer math (`$82:A1B9`) handles any LoROM-linear offset
 past 0xD8000 (file 0x100000 = `$A0:8000`).
+
+verified (2026-10-26): `tools/build.py` with category $20 recompressed by our packer moves it to 0x100000 in a
+2 MiB ROM; cutscenes 3 and 8 show the same text as the original, one or two frames later (bigger streams decode
+slower). The 40 categories sit back to back, no gaps, each directory word 0 = 2 + 2 x block count.

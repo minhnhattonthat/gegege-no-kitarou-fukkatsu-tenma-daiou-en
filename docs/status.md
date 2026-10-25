@@ -2,7 +2,8 @@
 
 Updated at the end of every session. Keep it to what the next session needs; history is in git.
 
-- **Phase:** 2 (debug tool) done; next is 3 (identity build). Last build: none yet (2026-10-26).
+- **Phase:** 3 (identity build) done; next is 4 (extract). Last build: `build/kitarou_en.sfc` = original
+  (sha1 0451530f..., smoke ok, 2026-10-26).
 - **Done:**
   - Step 0: repo set up (ROM pinned as `rom/kitarou.sfc`, MesenCE 2.2.1 in `tools/mesen/`, pre-commit runs
     `tools/check.py`, guard hook verified).
@@ -14,10 +15,19 @@ Updated at the end of every session. Keep it to what the next session needs; his
     `work/states/`). Tour on the original ROM: 59/59 arrived (2026-10-26). RAM map and flow: `docs/re/ram.md`.
     G8-G11 located: partner select (`coop`), staff roll (`ending`), boss-name banners from 01_000 (`bossN`),
     game over from 01_002 (`gameover`).
-- **Next (phase 3, identity build):** `tools/build.py`: unpack the archive (all 40 categories), repack with
-  `lzh.py` + original raw blocks, rebuild the category table, write `build/kitarou_en.sfc`; test: byte-identical
-  to `rom/kitarou.sfc`. Our compressor is ~3-7% larger than the original, so identity = keep the original packed
-  bytes for untouched blocks (repack only edited ones); also test decompress(compress(x)) == x per block.
+  - Phase 3: `tools/build.py` `build(rom, edits)` takes `{(cat, idx): stored bytes}`; untouched categories keep
+    their bytes, an edited one is repacked in place or moved to 0x100000+ (ROM -> 2 MiB, header $0B, table entry
+    rewritten, checksum fixed). `tests/test_build.py`: identity, every category repacked in place = identical,
+    recompressed $20 relocates and decodes. `test_lzh.py`: compress/decompress roundtrip on every packed block.
+    In emulator: relocated-$20 ROM shows the same captions (cut3/cut8, 1-2 frames later). `tools/cmpdirs.py`
+    pixel-diffs two emu runs.
+- **Next (phase 4, extract):** no encoding exists, so "extract" = transcribe every caption page into `script/`:
+  build a glyph table for sheet 20_002 (tile id of each 16x16 glyph -> kana/kanji; half-width 1x2 digits and
+  punctuation), and same for 20_000 (intro scroll) and 20_066 (cards); `tools/extract.py` reads each map
+  (20_001, 20_003-065, 20_067) into `script/captions.tsv` (id, 4 lines). Roundtrip test: re-rendering each
+  transcription through the table gives the original map bytes; every non-blank map cell is covered. Glyph
+  identification: render the sheet (`render_map.py`/`tiles.py render`) and transcribe by eye, cross-check with
+  the tour shots; unused captions 20/32/46 included.
 - **Plan for later phases:** no text engine: render English with an 8x16 fixed-width font into new glyph sheets and
   tilemaps offline, recompress, move category $20 (and 01, 24, 27, 1A, 1C as needed) to an expanded 2 MiB ROM
   (docs/re/layout.md). Captions: 4 lines x 30 chars. Boss banners: one 01_000 strip per boss (format still to

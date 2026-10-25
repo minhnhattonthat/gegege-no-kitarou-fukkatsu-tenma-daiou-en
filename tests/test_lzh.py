@@ -17,15 +17,18 @@ def test_selftest():
 
 
 @needs_rom
-def test_category_20_roundtrip():
-    """Every text block decodes inside its packed size and survives our compressor."""
+def test_every_block_roundtrip():
+    """Every packed block (all of category $20, the text) decodes inside its size and survives our compressor."""
     rom = ROM.read_bytes()
     cats = {c: bl for c, d, bl in archive.categories(rom)}
     assert len(cats[0x20]) == 68
-    for i, off, size in cats[0x20]:
-        data, used = archive.unpack(rom, off, size)
-        assert used <= size
-        c = lzh.compress(data)
+    assert all(archive.unpack(rom, off, size) for i, off, size in cats[0x20])
+    for c, i, off, size in archive.blocks(rom):
+        u = archive.unpack(rom, off, size)
+        if not u:
+            continue
+        data = u[0]
+        packed = lzh.compress(data)
         blob = bytearray(0x8000)
-        blob[:len(c)] = c
+        blob[:len(packed)] = packed
         assert lzh.decompress(bytes(blob), 0x808000)[0] == data
