@@ -6,7 +6,7 @@
  {"id": "G3.4", "block": "20_066/20_067", "scene": "card4", "jp": ["第四章"], "en": ["Chapter 4"], "notes": ""},
  {"id": "G3.5", "block": "20_066/20_067", "scene": "card5", "jp": ["第五章"], "en": ["Chapter 5"], "notes": ""},
  {"id": "G3.6", "block": "20_066/20_067", "scene": "card6", "jp": ["最終章"], "en": ["Final Chapter"], "notes": ""},
- {"id": "G4", "block": "1A_001", "scene": "title", "jp": ["一人でガンバル", "力を合わせる"], "en": ["Go It Alone", "Join Forces"], "notes": "title menu: 1 player / 2 players co-op"},
+ {"id": "G4", "block": "1A_001", "scene": "title", "jp": ["一人でガンバル", "力を合わせる"], "en": ["1 Player", "2 Players"], "notes": "title menu: 1 player / 2 players co-op"},
  {"id": "G5", "block": "1A_001", "scene": "title", "jp": ["©水木プロ・東映動画"], "en": ["©Mizuki Pro / Toei Animation"], "notes": "copyright line"},
  {"id": "G6", "block": "1A_001", "scene": "title", "jp": ["ゲゲゲの鬼太郎", "復活！天魔大王"], "en": ["GeGeGe no Kitaro", "Fukkatsu! Tenma Daio"], "notes": "logo: romanised (D10)"},
  {"id": "G7", "block": "27_004/27_005", "scene": "options", "jp": ["難易度", "面選択", "音楽", "効果音", "仲間の選択", "難しい", "ふつう", "易しい", "する", "しない"], "en": ["Difficulty", "Stage Select", "Music", "Sound Effects", "Partner Select", "Hard", "Normal", "Easy", "On", "Off"], "notes": "labels, then the values; digits 0-9 and ー (0-1 stage, 01 sound test) share the sheet"},
