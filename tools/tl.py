@@ -20,6 +20,7 @@ import insert  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 FILES = ("captions", "intro", "labels")
 TOKEN = re.compile(r"\{alien\d\}")
+ROMANISED = {"G6"}  # the title logo is romanised, not translated (D10): glossary forms don't apply
 LABEL_CHARS = set(" !&'(),-./:?©’“”") | set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
 
 
@@ -91,7 +92,8 @@ def lint(data=None):
                         errs.append(f"{eid}#{k}: {x}")
                 elif line != e["jp"][k] and not set(TOKEN.sub("", line)) <= LABEL_CHARS:  # kept-as-drawn = jp
                     errs.append(f"{eid}#{k}: characters outside the label set: {line!r}")
-            errs += term_errors(eid, "".join(e["jp"]), " ".join(en), terms)
+            if eid not in ROMANISED:
+                errs += term_errors(eid, "".join(e["jp"]), " ".join(en), terms)
     return errs
 
 

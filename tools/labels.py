@@ -477,8 +477,40 @@ COPY_BOX, COPY_MARK = (72, 184, 200, 197), (78, 184, 90, 197)  # whole JP line; 
 SCROLL_SPRITE = (72, 118)
 
 
+# G6 logo, romanised (D10): line 1 in palette 2 (colours 1-8 end red, 9/a black: the brush reveal cycles them),
+# line 2 in palette 3 (15 dark rim, 6..2 orange to yellow downwards), both at 2x the caption font.
+LOGO_BOXES = [(24, 30, 232, 82), (36, 86, 222, 116)]  # whole JP lines, cleared
+
+
+def logo(bg, en):
+    def big(text, sy):
+        g = [[p for p in row for _ in range(2)] for row in font.render(text) if any(row) for _ in range(sy)]
+        return g
+
+    line1, line2 = en["G6"]
+    for (x0, y0, x1, y1), attr, text, k in zip(LOGO_BOXES, (0x0800, 0x0C00), (line1, line2), (1, 2)):
+        bg.fill(x0, y0, x1, y1, 0)
+        g = big(text, 4 - k)  # line 1 2x3 (the big title), line 2 2x2
+        h, w = len(g), len(g[0])
+        assert w <= 248 and h <= y1 - y0 - 2, f"G6: {text!r} {w}x{h} px too big"
+        if k == 1:  # brush texture: every red index, so the reveal still sweeps through it
+            img = [[2 + (x * 3 + y * 5) % 7 if p else 0 for x, p in enumerate(row)] for y, row in enumerate(g)]
+        else:  # rim 15 round the glyphs, fill banded by row like the original
+            img = [[0] * (w + 2) for _ in range(h + 2)]
+            for y in range(h + 2):
+                for x in range(w + 2):
+                    if 0 < y <= h and 0 < x <= w and g[y - 1][x - 1]:
+                        img[y][x] = 6 - min(4, (y - 1) * 5 // h)
+                    elif any(0 <= y - 1 + dy < h and 0 <= x - 1 + dx < w and g[y - 1 + dy][x - 1 + dx]
+                             for dy in (-1, 0, 1) for dx in (-1, 0, 1)):
+                        img[y][x] = 15
+        bg.draw(img, 128 - len(img[0]) // 2, (y0 + y1) // 2 - len(img) // 2)
+        bg.commit(attr)
+
+
 def title(en, rom):
     bg = LinearBG(extract.block(rom, 0x1A, 1), extract.block(rom, 0x1B, 1))
+    logo(bg, en)
     obj = extract.block(rom, 0x22, 2)
     n = len(obj) * 2 // 64
     spr = LinearBG(obj, extract.join_map(16, n // 16, list(range(n))))  # identity map: every tile edits in place

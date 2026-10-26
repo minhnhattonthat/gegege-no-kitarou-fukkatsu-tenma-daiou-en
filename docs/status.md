@@ -55,6 +55,8 @@ Updated at the end of every session. Keep it to what the next session needs; his
     (`work/qa/dlg/sheet.png`). Full-res sheets of every graphics-text screen in `work/qa/zoom/` (cards, staff roll,
     menus, title, TV sign = cut9 f1048+, partner windows rendered offline: P2 cursor can't be driven headless).
     Staff screen 2 text moved 8 px off the left screen edge. Polish: 20_018 "my past self", 20_061 explicit breaks.
+    Title logo romanised (D10, `labels.logo`): "GeGeGe no Kitaro" / "Fukkatsu! Tenma Daio"; full re-tour + 4
+    reviewers, gate 120 sheets ok. No Japanese graphics text left except the alien script (intended).
     Gate covers tour + dlg + zoom (118 sheets). Smoke ok.
 - **Next (phase 9, release):** `tools/release.py` (gate, jp_left, debug tool off, patch + verify, README hashes).
   G15 speakers are guessed from the text (each list's caller in labels.json notes); a playtest would confirm.

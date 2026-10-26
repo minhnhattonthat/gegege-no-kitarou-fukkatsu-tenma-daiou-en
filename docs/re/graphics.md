@@ -12,7 +12,7 @@ tour. Formats: planar = SNES 2/4bpp tiles; linear = packed 4bpp, converted by `$
 | G3 | chapter cards 序章, 第一章..第五章, 最終章 | 20_066 glyphs + 20_067 map | planar 2bpp, 12x4 tiles per card | BG3, `$82:BB07`, row = `$11BD` | `card0`..`card6` | redraw: Prologue / Chapter 1..5 / Final Chapter |
 | G4 | title menu 一人でガンバル / 力を合わせる | 1A_001 (and 22_002 scroll sprite) | linear 4bpp | BG1 title screen | `title` | redraw: 1 Player / 2 Players (co-op) |
 | G5 | title copyright ©水木プロ・東映動画 | 1A_001 | linear 4bpp | BG1 title | `title` | redraw: (c) Mizuki Pro / Toei Animation |
-| G6 | title logo ゲゲゲの鬼太郎 / 復活!天魔大王 | 1A_001 | linear 4bpp | BG1 title | `title` | keep Japanese (no official English logo; D5) |
+| G6 | title logo ゲゲゲの鬼太郎 / 復活!天魔大王 | 1A_001 | linear 4bpp | BG1 title | `title` | romanised (D10, `labels.logo`; palette 2 brush reveal, palette 3 gradient) |
 | G7 | options menu 難易度 (難しい / ふつう / 易しい) / 面選択 / 音楽 / 効果音 / 仲間の選択 (する / しない) | 27_004 glyphs (+ 27_005 map) | planar 2bpp | title + Select | `options` | re-render glyphs + map |
 | G8 | partner select: names and moves (子泣きじじい, 砂かけばばあ, ねずみ男, シーサー, 地獄童子, 必殺技, 火炎, 突進, おなら, 仲間を...) | 1C_000 | linear 4bpp | partner screen 仲間を選んでね: 2P co-op with option 仲間の選択 on, after the card | `coop` | redraw labels |
 | G9 | staff roll (監督, 演出, プログラム, ... names, 水木しげる, 東映動画, バンダイ; INTERBEC logo); also おわり after the ending captions | 24_002 glyphs (+ 24_000/001/003/004, `$82:BF11`) | planar 2bpp | after the ending | `ending` | English credits (D3), romanised names |

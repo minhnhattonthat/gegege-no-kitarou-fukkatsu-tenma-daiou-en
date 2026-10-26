@@ -39,5 +39,5 @@ Then return a short summary: counts, and the issues one per line.
 - Boss banners 5-1/5-2 and captions 20_027/20_050 use an invented alien script (glyphs, not Japanese): intended.
 - cut9 city picture: every sign romanised (D9): TV, SAKURAYA (vertical + plate), NIPPO, NTON / RAIN.. cut off by the picture edge on purpose.
 - INTERBEC logo on the staff roll kept as drawn.
-- Title logo ゲゲゲの鬼太郎 / 復活!天魔大王 stays Japanese (no official English logo; D5, G6).
+- Title logo romanised (D10): "GeGeGe no Kitaro" / "Fukkatsu! Tenma Daio"; any Japanese logo left is a bug.
 - HUD icon in the status bar (left box): JP 鬼, redrawn as "ONI" on purpose (D8).
