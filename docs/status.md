@@ -2,7 +2,7 @@
 
 Updated at the end of every session. Keep it to what the next session needs; history is in git.
 
-- **Phase:** 6 (translate) done; next is 7 (insert, fit, check). Last builds (2026-10-26):
+- **Phase:** 7 (insert, fit, check) done; next is 8 (QA in the emulator). Last builds (2026-10-26):
   `build/kitarou_en.sfc` (English captions + letter, smoke ok),
   `build/marker.sfc` (`build.py build/marker.sfc --marker`, smoke ok, every page shows its id) and
   `build/ruler.sfc` (`--ruler`, width gate).
@@ -39,13 +39,19 @@ Updated at the end of every session. Keep it to what the next session needs; his
     as drawn: glyphs ①-④ in `fonts/caption.txt` (`insert.ALIEN`). `insert.wrap` now balances lines (greedy line
     count, narrowest width) so no one-word widows. `build/kitarou_en.sfc` smoke ok; all 60 pages shot English and
     in bounds (`work/qa/pages_en/pages.png`).
-- **Next (phase 7, insert/fit/check):**
-  - Graphics labels (cards, title menu, options, partner select, game over, boss banners, staff roll, shop sign):
-    redraw per element from `labels.json` `en` (sizes in `docs/re/graphics.md`); partner screen moves need P2
-    input to cycle partners (Mesen testRunner has no port 2; warp.lua writes `$F1`) to confirm which move belongs
-    to whom (G8 move names are a guess by kanji meaning).
-  - `romdiff.py` gate in the build: allowed ranges = archive blocks moved/repacked + hook + table at `$BF:FF00+`.
-  - Remaining minors from review (optional polish): 20_018 "the me of this era", 20_061 wraps "Space / yokai".
+  - Phase 7: every graphics label redrawn by `tools/labels.py` (`edits(rom)`, called from `insert.edits`):
+    chapter cards 20_066/067, game over 01_002, boss banners 01_000, options 27_004/005, staff roll 24_002/003
+    (INTERBEC logo kept), title menu + copyright 1A_001/1B_001/22_002 (`LinearBG` reallocates tiles), partner
+    select 1C_000/1D_000-006 (name/move per window read from the maps, so the mapping is not a guess), TV sign in
+    18_013 (ending city shot; store names kept). `build.py` writes `build/kitarou_en.writes.txt`;
+    `tests/test_build.py::test_writes_romdiff_clean` gates it with `romdiff.py --writes` (en + marker), plus a
+    branch-into-hook scan. check.py 19 passed; tour on the EN build 59/59 arrived (`work/qa/tour/`).
+- **Next (phase 8, QA):** contact sheets per changed scene -> visual-qa agents -> `qa_gate.py check`; zoomed
+  cold-boot shot of every graphics-text row (cards, game over, banners, options, staff roll, title, partner,
+  TV sign: drawn in 18_013 and checked offline, but no cut10 shot every 300 frames showed it; find its frame). Partner screen
+  only shows the first partner (P2 cursor can't be driven headless; writing `$F1` after the joypad read did
+  nothing) - the other 5 windows are checked offline by rendering 1D_00x, or find the cursor RAM var.
+  Optional polish from review: 20_018 "the me of this era", 20_061 wraps "Space / yokai".
 - **Gotchas:** Mesen `--testRunner` has no port-2 input (`emu.setInput(x, 1)` lands on P1); warp.lua writes the
   P2 joypad mirror `$F1` instead. The in-game loop checks the stage-clear flag only once the HUD is up. Pressing
   right/down on the partner screen with P1 input does nothing. Caption page time is reveal-driven (8 frames per

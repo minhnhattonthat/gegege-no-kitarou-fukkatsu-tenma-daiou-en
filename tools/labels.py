@@ -307,6 +307,254 @@ def staff(en, rom):
     return {(0x24, 2): sheet.data(STAFF_SHEET), (0x24, 3): bytes(out)}, patches
 
 
+class LinearBG:
+    """A BG screen whose tiles are a linear 4bpp block (128 px = 16 tiles per row, high nibble first; converted to
+    planar by $82:A238) and whose map is a [w, h] + words block. Edit it in pixels, then commit(): each touched cell
+    gets its tile rewritten in place when no other cell uses that tile, else a new tile appended to the block."""
+
+    def __init__(self, tiles, mapdata, reuse=False):
+        self.reuse, self.freed, self.made = reuse, [], {}
+        self.tiles = bytearray(tiles)
+        self.n0 = len(tiles) * 2 // 64
+        self.w, self.h, self.words = extract.split_map(mapdata)
+        self.uses = {}
+        for wd in self.words:
+            self.uses[wd & 0x3FF] = self.uses.get(wd & 0x3FF, 0) + 1
+        self.img = [[self.cell_px(r, c, x, y) for c in range(self.w) for x in range(8)]
+                    for r in range(self.h) for y in range(8)]
+        self.touched = set()
+
+    def px(self, k, x, y):
+        b = self.tiles[(((k // 16) * 8 + y) * 128 + (k % 16) * 8 + x) // 2]
+        return b >> 4 if x % 2 == 0 else b & 15
+
+    def cell_px(self, r, c, x, y):
+        wd = self.words[r * self.w + c]
+        return self.px(wd & 0x3FF, 7 - x if wd & 0x4000 else x, 7 - y if wd & 0x8000 else y)
+
+    def set_px(self, k, x, y, v):
+        i = (((k // 16) * 8 + y) * 128 + (k % 16) * 8 + x) // 2
+        self.tiles[i] = (self.tiles[i] & 0x0F) | v << 4 if x % 2 == 0 else (self.tiles[i] & 0xF0) | v
+
+    def fill(self, x0, y0, x1, y1, v):
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                self.img[y][x] = v
+        self.touch(x0, y0, x1, y1)
+
+    def draw(self, cimg, x0, y0):
+        """Colour-index image; index 0 is transparent."""
+        for y, row in enumerate(cimg):
+            for x, v in enumerate(row):
+                if v:
+                    self.img[y0 + y][x0 + x] = v
+        self.touch(x0, y0, x0 + len(cimg[0]), y0 + len(cimg))
+
+    def touch(self, x0, y0, x1, y1):
+        self.touched |= {(r, c) for r in range(y0 // 8, (y1 + 7) // 8) for c in range(x0 // 8, (x1 + 7) // 8)}
+
+    def commit(self, attr):
+        """Write touched cells back; cells that were blank tile 0 take `attr` (palette/priority)."""
+        for r, c in sorted(self.touched):
+            i = r * self.w + c
+            wd = self.words[i]
+            k = wd & 0x3FF
+            if not any(self.img[r * 8 + y][c * 8 + x] for y in range(8) for x in range(8)):
+                if k:
+                    self.release(k)
+                self.words[i] = 0
+                continue
+            cell = tuple(self.img[r * 8 + y][c * 8 + x] for y in range(8) for x in range(8))
+            if self.made.get(cell) not in (None, k):  # same pixels as a tile this edit already wrote
+                self.release(k)
+                k = self.made[cell]
+                self.uses[k] += 1
+                self.words[i] = ((wd & 0x1C00) if wd & 0x3FF else attr) | (wd & 0x2000) | k
+                continue
+            if k == 0 or self.uses[k] > 1:
+                self.release(k)
+                k = self.alloc()
+            self.made[cell] = k
+            self.words[i] = ((wd & 0x1C00) if wd & 0x3FF else attr) | (wd & 0x2000) | k  # flips dropped
+            for y in range(8):
+                for x in range(8):
+                    self.set_px(k, x, y, self.img[r * 8 + y][c * 8 + x])
+        self.touched = set()
+
+    def release(self, k):
+        self.uses[k] -= 1
+        if k and not self.uses[k] and self.reuse:
+            self.freed.append(k)
+
+    def alloc(self):
+        """A tile no cell uses any more (with reuse: one only the edited cells used), else one past the original
+        block (a new row of 16 when needed). Original tiles this map never used are left alone: another screen may
+        draw them."""
+        if self.freed:
+            k = self.freed.pop(0)
+            self.uses[k] = 1
+            return k
+        n = len(self.tiles) * 2 // 64
+        k = next((t for t in range(self.n0, n) if not self.uses.get(t)), None)
+        if k is None:
+            self.tiles += bytes(512)
+            k = n
+        self.uses[k] = 1
+        return k
+
+    def blocks(self):
+        return bytes(self.tiles), extract.join_map(self.w, self.h, self.words)
+
+
+def styled(text, fill, ring, shade=None, thick=False):
+    """Colour image of `text` (caption font): glyph pixels `fill`, a 1 px `ring` around them (8-neighbours), and
+    an optional `shade` drop shadow 1 px right/down instead of the ring on those sides."""
+    g = font.render(text, 1, font.width(text) + 3)[1:16]
+    g = [[0] + row for row in g] + [[0] * (len(g[0]) + 1)]
+    if thick:
+        g = bold(g)
+    h, w = len(g), len(g[0])
+    out = [[fill if p else 0 for p in row] for row in g]
+    for y in range(h):
+        for x in range(w):
+            if g[y][x]:
+                continue
+            near = [(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)
+                    if 0 <= x - dx < w and 0 <= y - dy < h and g[y - dy][x - dx]]
+            if near:
+                out[y][x] = shade if shade and any(dx >= 0 and dy >= 0 for dx, dy in near) else ring
+    return out
+
+
+# G4/G5 title: BG1 tiles 1A_001 (linear 4bpp, DMA 0x5000 bytes = 640 tiles to VRAM 0), map 1B_001 (32x28).
+# Menu text on the scroll (palette 4: 3 parchment, 2 dark ink, 4 light brown), copyright row 23-24 (palette 5:
+# 1 light, 4/5 blue edges). The logo (G6) stays Japanese (D5).
+TITLE_MENU = [(104, 133, 167, 149, 106, 135), (104, 150, 167, 166, 106, 152)]  # erase box, text x, y
+COPY_BOX, COPY_MARK = (72, 184, 200, 197), (78, 184, 90, 197)  # whole JP line; the © mark inside it
+
+
+# While the scroll unrolls, the open scroll is 16x16 sprites from 22_002 (linear 4bpp, OBJ palette 0 = BG palette
+# 4) holding the same menu art: sheet pixel = screen pixel - SCROLL_SPRITE.
+SCROLL_SPRITE = (72, 118)
+
+
+def title(en, rom):
+    bg = LinearBG(extract.block(rom, 0x1A, 1), extract.block(rom, 0x1B, 1))
+    obj = extract.block(rom, 0x22, 2)
+    n = len(obj) * 2 // 64
+    spr = LinearBG(obj, extract.join_map(16, n // 16, list(range(n))))  # identity map: every tile edits in place
+    for (x0, y0, x1, y1, tx, ty), text in zip(TITLE_MENU, en["G4"]):
+        img = styled(text, 2, 4)
+        assert tx + len(img[0]) <= x1 and ty + len(img) <= y1 + 2, f"G4: {text!r} too big"
+        for layer, (dx, dy) in ((bg, (0, 0)), (spr, SCROLL_SPRITE)):
+            layer.fill(x0 - dx, y0 - dy, x1 - dx, y1 - dy, 3)
+            layer.draw(img, tx - dx, ty - dy)
+    bg.commit(0x1000)
+    spr.commit(0)
+    assert len(spr.tiles) == len(obj)
+    (text,) = en["G5"]
+    assert text.startswith("©")
+    mark = [row[COPY_MARK[0]:COPY_MARK[2]] for row in bg.img[COPY_MARK[1]:COPY_MARK[3]]]
+    img = styled(text[1:].strip(), 1, 4, shade=5)
+    total = len(mark[0]) + 2 + len(img[0])
+    x = 128 - total // 2
+    bg.fill(min(x, COPY_BOX[0]), COPY_BOX[1], max(x + total, COPY_BOX[2]), COPY_BOX[3], 0)
+    bg.draw(mark, x, COPY_MARK[1])
+    bg.draw(img, x + len(mark[0]) + 2, COPY_BOX[1] - 1)
+    bg.commit(0x1400)
+    tiles, m = bg.blocks()
+    assert len(tiles) <= 0x5000, "title tiles past the 0x5000-byte DMA"
+    return {(0x1A, 1): tiles, (0x1B, 1): m, (0x22, 2): spr.blocks()[0]}, []
+
+
+# G8 partner select: BG tiles 1C_000 (linear 4bpp, DMA 0x5400 bytes to VRAM $5000), screen map 1D_000 (32x28,
+# header box rows 2-3 cols 8-23) and one 20x10 window map per partner, 1D_001..1D_006: name rows 1-2 and the move
+# rows 7-8 in cols 8-19, 必殺技 rows 4-5. Text is colour 11 (white) on a transparent cell. The maps share tiles,
+# so they are edited as one stacked map.
+PARTNER_HEADER = (64, 16, 192, 32)  # px box in 1D_000
+PARTNER_NAME, PARTNER_SPECIAL, PARTNER_MOVE = (64, 8, 160, 24), (64, 32, 160, 48), (64, 56, 160, 72)
+
+
+def partner(en, rom):
+    maps = [extract.split_map(extract.block(rom, 0x1D, i)) for i in range(7)]
+    rows0, words = [], []
+    for w, h, wd in maps:
+        rows0.append(len(words) // 32)
+        for r in range(h):
+            words += wd[r * w:(r + 1) * w] + [0] * (32 - w)
+    bg = LinearBG(extract.block(rom, 0x1C, 0), extract.join_map(32, len(words) // 32, words), reuse=True)
+    header, special, *pairs = en["G8"]
+
+    def put(box, text, y0, align):
+        x0, y1, x1, y2 = box[0], box[1] + y0, box[2], box[3] + y0
+        bg.fill(x0, y1, x1, y2, 0)
+        w = font.width(text)
+        assert w <= x1 - x0, f"G8: {text!r} wider than {x1 - x0} px"
+        x = x0 + {"center": (x1 - x0 - w) // 2, "left": 0, "indent": min(24, x1 - x0 - w)}[align]
+        bg.draw([[11 if p else 0 for p in row] for row in font.render(text)], x, y1)
+
+    put(PARTNER_HEADER, header, 0, "center")
+    for k in range(6):
+        y0 = rows0[k + 1] * 8
+        put(PARTNER_NAME, pairs[2 * k], y0, "center")
+        put(PARTNER_SPECIAL, special, y0, "left")
+        put(PARTNER_MOVE, pairs[2 * k + 1], y0, "indent")
+    bg.commit(0)
+    tiles, m = bg.blocks()
+    # Extra tiles past the original 576 still sit inside the 0x5400-byte DMA (672 tiles, VRAM up to $7A00, which
+    # held WRAM leftovers before) and the decompress buffer $7E:2000-$7E:7600 (scratch: the boot and title
+    # graphics pass through it; nothing writes it from the title to the first stage, ramwrites probe 2026-10-26).
+    assert len(tiles) <= 0x5400, f"partner screen: {len(tiles) * 2 // 64} tiles > 672"
+    _, _, words = extract.split_map(m)
+    out = {(0x1C, 0): tiles}
+    for i, (w, h, _) in enumerate(maps):
+        out[0x1D, i] = extract.join_map(w, h, [words[(rows0[i] + r) * 32 + c] for r in range(h) for c in range(w)])
+    return out, []
+
+
+# G12 city picture 18_013 (linear 4bpp; the picture map shows the sheet as it is): the vertical テレビ sign is a
+# 5 px column (x 99-103, y 23-51, colour 1 on 11). TV is drawn in the same tiny pixel style; the store names stay
+# (status.md default).
+SIGN_TV = """
+#####
+..#..
+..#..
+..#..
+..#..
+..#..
+..#..
+.....
+.....
+.....
+.....
+#...#
+#...#
+#...#
+#...#
+.#.#.
+.#.#.
+..#..
+"""
+
+
+def city_sign(en, rom):
+    assert en["G12"][0] == "TV", "G12: the sign art is drawn for 'TV'"
+    sheet = extract.block(rom, 0x18, 13)
+    n = len(sheet) * 2 // 64
+    pic = LinearBG(sheet, extract.join_map(16, n // 16, list(range(n))))
+    x0, y0, x1, y1 = 99, 23, 104, 52
+    for y in range(y0, y1):
+        for x in range(x0, x1):
+            if pic.img[y][x] == 1:
+                pic.img[y][x] = 11
+    art = [[1 if ch == "#" else 0 for ch in line] for line in SIGN_TV.strip().splitlines()]
+    pic.draw(art, x0, 24)
+    pic.touch(x0, y0, x1, y1)
+    pic.commit(0)
+    assert len(pic.tiles) == len(sheet)
+    return {(0x18, 13): pic.blocks()[0]}, []
+
+
 RAW = {(0x01, 0), (0x01, 2)}  # blocks the game reads uncompressed (DMA straight from ROM)
 
 
@@ -314,7 +562,7 @@ def edits(rom):
     """(blocks {(cat, idx): unpacked bytes}, patches [(off, orig, new)]); blocks in RAW are stored as they are."""
     en = labels()
     blocks, patches = {}, []
-    for fn in (cards, gameover, banners, options, staff):
+    for fn in (cards, gameover, banners, options, staff, title, partner, city_sign):
         b, p = fn(en, rom)
         blocks.update(b)
         patches += p
