@@ -2,7 +2,9 @@
 
 Updated at the end of every session. Keep it to what the next session needs; history is in git.
 
-- **Phase:** 7 (insert, fit, check) done; next is 8 (QA in the emulator). Last builds (2026-10-26):
+- **Phase:** 9 (release) done: `release/Gegege_no_Kitarou_Fukkatsu_Tenma_Daiou_EN_v1.0.zip` (BPS 175723 bytes +
+  README.txt; patched CRC32 B026EE6F), made by `tools/release.py`, all steps passed. Not published (user's call).
+  Last builds (2026-10-26):
   `build/kitarou_en.sfc` (English captions + letter, smoke ok),
   `build/marker.sfc` (`build.py build/marker.sfc --marker`, smoke ok, every page shows its id) and
   `build/ruler.sfc` (`--ruler`, width gate).
@@ -58,8 +60,9 @@ Updated at the end of every session. Keep it to what the next session needs; his
     Title logo romanised (D10, `labels.logo`): "GeGeGe no Kitaro" / "Fukkatsu! Tenma Daio"; full re-tour + 4
     reviewers, gate 120 sheets ok. No Japanese graphics text left except the alien script (intended).
     Gate covers tour + dlg + zoom (118 sheets). Smoke ok.
-- **Next (phase 9, release):** `tools/release.py` (gate, jp_left, debug tool off, patch + verify, README hashes).
-  G15 speakers are guessed from the text (each list's caller in labels.json notes); a playtest would confirm.
+- **Next:** publish when the user says so (never `gh release create` from here). Optional: a playtest to confirm
+  the guessed G15 speakers (each list's caller in labels.json notes). jp_left.py doesn't apply (no text encoding;
+  release.py uses tl.py lint + the visual-QA gate instead). Release README template: `docs/release-readme.txt`.
 - **Gotchas:** Mesen `--testRunner` has no port-2 input (`emu.setInput(x, 1)` lands on P1); warp.lua writes the
   P2 joypad mirror `$F1` instead. The in-game loop checks the stage-clear flag only once the HUD is up. Pressing
   right/down on the partner screen with P1 input does nothing. Caption page time is reveal-driven (8 frames per

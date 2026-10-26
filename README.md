@@ -1,6 +1,6 @@
-# <Game title> English translation
+# GeGeGe no Kitarou: Fukkatsu! Tenma Daiou English translation
 
-Unofficial English fan translation of **<Game title>** (<platform>, <publisher>, <year>): the source text and tools
+Unofficial English fan translation of **GeGeGe no Kitarou: Fukkatsu! Tenma Daiou** (Super Famicom, Bandai, 1993): the source text and tools
 that build the patch.
 
 **Just want to play?** Download the patch from [Releases](../../releases) and follow its README. This repository holds
@@ -28,11 +28,12 @@ helps most.
 Needs Python 3.12+ and your own dump of the Japanese game.
 
 ```sh
-git clone https://github.com/minhnhattonthat/<repo>
-cd <repo>
-# copy your dump to: rom/<file>
-#   (<size> bytes, SHA-1 <sha1>; the build refuses any other dump, see rom.sha1)
-python -X utf8 tools/build.py                          # -> build/<game>_en.<ext>
+git clone https://github.com/minhnhattonthat/gegege-no-kitarou-fukkatsu-tenma-daiou-en
+cd gegege-no-kitarou-fukkatsu-tenma-daiou-en
+# copy your dump to: rom/kitarou.sfc
+#   (No-Intro "Gegege no Kitarou - Fukkatsu! Tenma Daiou (Japan).sfc", 1048576 bytes,
+#    SHA-1 0451530f6acb855583192d6257182b8d99ec9aa5; the build refuses any other dump, see rom.sha1)
+python -X utf8 tools/build.py                          # -> build/kitarou_en.sfc
 python -X utf8 tools/check.py                          # tests + text lint
 ```
 
@@ -44,8 +45,9 @@ If you enjoy this translation, you can support my work on Ko-fi:
 
 ## Licence
 
-Tools and English translation: MIT. The original Japanese text in `script/` is <publisher>'s and is included only so
-the translation can be checked against it. <Game title> is (c) <publisher>; this project is not affiliated with them.
+Tools and English translation: MIT. The original Japanese text in `script/` is Bandai's and is included only so
+the translation can be checked against it. GeGeGe no Kitarou is (c) Mizuki Pro / Toei Animation and the game (c)
+Bandai; this project is not affiliated with them.
 Do not share patched ROMs.
 
 The translation was made with extensive AI assistance (Claude by Anthropic). Corrections are very welcome.
