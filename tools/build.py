@@ -32,18 +32,25 @@ def pack_category(blocks):
     return bytes(out)
 
 
-def grow(out):
-    if len(out) < SIZE_2M:
-        out += b"\xff" * (SIZE_2M - len(out))
-        out[0x7FD7] = 0x0B  # header ROM size: 2 MiB
-
-
-def build(rom, edits=None, patches=()):
+def build(rom, edits=None, patches=(), log=None):
     """edits: {(cat, idx): stored block bytes (already compressed with lzh.compress, or raw)}; an idx past a
     category's last block appends blocks (the new indices must follow on without gaps).
-    patches: (file offset, original bytes or None for expansion space, new bytes) code writes."""
+    patches: (file offset, original bytes or None for expansion space, new bytes) code writes.
+    log: a list that gets one romdiff.py --writes line per write (`OFF ORIG_HEX NEW_HEX by`)."""
     edits = edits or {}
     out = bytearray(rom)
+    log = [] if log is None else log
+
+    def put(off, data, by):
+        orig = rom[off:off + len(data)].ljust(len(data), b"\xff")
+        log.append(f"{off:X} {orig.hex()} {bytes(data).hex()} {by}")
+        out[off:off + len(data)] = data
+
+    def grow():
+        if len(out) < SIZE_2M:
+            out.extend(b"\xff" * (SIZE_2M - len(out)))
+            put(0x7FD7, b"\x0b", "header-size-2MiB")
+
     free = EXPAND
     code_lo = min((off for off, _, _ in patches if off >= EXPAND), default=SIZE_2M)
     for c, d, bl in archive.categories(rom):
@@ -56,21 +63,23 @@ def build(rom, edits=None, patches=()):
         data = pack_category([edits.get((c, i), rom[off:off + size]) for i, off, size in bl] +
                              [edits[c, i] for i in new])
         if len(data) <= old_len:
-            out[d:d + len(data)] = data  # leftover bytes past the last block are never read
+            put(d, data, f"cat{c:02X}-in-place")  # leftover bytes past the last block are never read
             continue
-        grow(out)
+        grow()
         assert free + len(data) <= code_lo, "expansion area full"
-        out[free:free + len(data)] = data
-        out[archive.BASE + 4 * c:archive.BASE + 4 * c + 3] = (free - archive.BASE).to_bytes(3, "little")
+        put(free, data, f"cat{c:02X}-moved")
+        put(archive.BASE + 4 * c, (free - archive.BASE).to_bytes(3, "little"), f"cat{c:02X}-table-entry")
         free += len(data)
     for off, orig, new in patches:
         if off >= EXPAND:
-            grow(out)
+            grow()
             assert out[off:off + len(new)] == b"\xff" * len(new), f"{off:#x}: expansion space already used"
         else:
             assert rom[off:off + len(orig)] == orig and len(orig) == len(new), f"{off:#x}: unexpected original bytes"
-        out[off:off + len(new)] = new
-    return bps.snes_checksum(out)[0]
+        put(off, new, f"patch-{off:X}")
+    done = bps.snes_checksum(out)[0]
+    put(0x7FDC, done[0x7FDC:0x7FE0], "checksum")
+    return bytes(out)
 
 
 def main():
@@ -81,9 +90,23 @@ def main():
     rom = (ROOT / "rom" / "kitarou.sfc").read_bytes()
     out = Path(args[0]) if args else ROOT / "build" / "kitarou_en.sfc"
     out.parent.mkdir(parents=True, exist_ok=True)
-    data = build(rom, *insert.edits(rom, mode))
+    log = []
+    data = build(rom, *insert.edits(rom, mode), log=log)
+    errs = verify(rom, data, log)
     out.write_bytes(data)
-    print(f"{out}: {len(data):#x} bytes, {'identical to' if data == rom else 'differs from'} the original")
+    out.with_suffix(".writes.txt").write_text("\n".join(log) + "\n", encoding="utf-8", newline="\n")
+    print(f"{out}: {len(data):#x} bytes, {'identical to' if data == rom else 'differs from'} the original, "
+          f"{len(log)} writes")
+    if errs:
+        sys.exit("romdiff:\n" + "\n".join(errs))
+
+
+def verify(rom, data, log):
+    """romdiff.py's check: every changed byte comes from a logged write that found the original bytes it expected,
+    no write overlaps or overwrites another. No free-form allowed ranges."""
+    import romdiff
+    writes = [(int(o, 16), bytes.fromhex(a), bytes.fromhex(b), by) for o, a, b, by in (x.split(" ", 3) for x in log)]
+    return romdiff.check(rom, data, set(), writes)[0]
 
 
 if __name__ == "__main__":

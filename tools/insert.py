@@ -67,14 +67,14 @@ def tile_bytes(img, cx, cy):
 
 
 class Sheet:
-    """Deduplicating tile sheet: tiles 0 and 1 blank, glyph tiles from 2 up."""
+    """Deduplicating tile sheet: tiles 0..blank are blank (blank cells get id `blank`), glyph tiles follow."""
 
-    def __init__(self, limit, attr=0):
-        self.tiles, self.ids, self.limit, self.attr = [bytes(16), bytes(16)], {}, limit, attr
+    def __init__(self, limit, attr=0, blank=BLANK_IN_LINE):
+        self.tiles, self.ids, self.limit, self.attr, self.blank = [bytes(16)] * (blank + 1), {}, limit, attr, blank
 
     def id(self, data):
         if not any(data):
-            return BLANK_IN_LINE
+            return self.blank
         if data not in self.ids:
             if len(self.tiles) >= self.limit:
                 raise SheetFull(self.limit)
@@ -279,4 +279,13 @@ def edits(rom, mode="en"):
     if mode != "en" or ie["en"]:
         blocks[0x20, 1], blocks[0x20, 0] = intro(ie, mode)
     tbl = bytes(table.get(nn, 2) for nn in range(66))
-    return {k: lzh.compress(v) for k, v in blocks.items()}, [HOOK_SITE, HOOK, (TABLE, None, tbl)]
+    patches = [HOOK_SITE, HOOK, (TABLE, None, tbl)]
+    if mode == "en":
+        import labels
+        lb, lp = labels.edits(rom)
+        blocks.update({k: v for k, v in lb.items() if k not in labels.RAW})
+        patches += lp
+    out = {k: lzh.compress(v) for k, v in blocks.items()}
+    if mode == "en":
+        out.update({k: lb[k] for k in labels.RAW if k in lb})
+    return out, patches

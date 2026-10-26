@@ -42,3 +42,33 @@ def test_grown_category_moves_to_expansion():
     # inside the old 1 MiB only the table entry, the header size byte and the checksum change
     allowed = {0x7FD7, 0x7FDC, 0x7FDD, 0x7FDE, 0x7FDF, 0x28080, 0x28081, 0x28082}
     assert {i for i in range(0x100000) if out[i] != rom[i]} <= allowed
+
+
+@needs_rom
+def test_hook_swallows_no_branch_target():
+    """No branch/jump within 4 KB of a code hook lands strictly inside the bytes the hook overwrote (byte scan, no
+    flow analysis, so it errs on the side of failing)."""
+    import insert
+    rom = ROM.read_bytes()
+    for site, orig, _ in [insert.HOOK_SITE]:
+        lo, hi = site + 1, site + len(orig)
+        for p in range(site - 0x1000, site + 0x1000):
+            op = rom[p]
+            if op in (0x10, 0x30, 0x50, 0x70, 0x80, 0x90, 0xB0, 0xD0, 0xF0):
+                t = p + 2 + ((rom[p + 1] ^ 0x80) - 0x80)
+            elif op in (0x4C, 0x20, 0x5C, 0x22):
+                t = (p & ~0x7FFF) | ((rom[p + 1] | rom[p + 2] << 8) & 0x7FFF)
+            else:
+                continue
+            assert not lo <= t < hi, f"{p:#x} jumps to {t:#x}, inside the hook at {site:#x}"
+
+
+@needs_rom
+@pytest.mark.parametrize("mode", ["en", "marker"])
+def test_writes_romdiff_clean(mode):
+    """romdiff gate: every changed byte is a logged write over the original bytes it expected, none overlap."""
+    import insert
+    rom = ROM.read_bytes()
+    log = []
+    out = build.build(rom, *insert.edits(rom, mode), log=log)
+    assert build.verify(rom, out, log) == []
