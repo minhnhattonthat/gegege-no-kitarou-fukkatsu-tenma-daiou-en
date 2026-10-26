@@ -170,6 +170,143 @@ def banners(en, rom):
     return {(0x01, 0): bytes(data) + rom[BANNER_BASE + len(data):BANNER_BASE + BANNER_SIZE]}, patches
 
 
+def tile2(img, cx, cy):
+    """SNES 2bpp tile of the 8x8 cell (cx, cy) of a colour-index image (colours 0-3)."""
+    out = bytearray()
+    for y in range(8):
+        r = img[cy * 8 + y][cx * 8:cx * 8 + 8]
+        out += bytes([sum((v & 1) << (7 - x) for x, v in enumerate(r)), sum((v >> 1) << (7 - x) for x, v in enumerate(r))])
+    return bytes(out)
+
+
+# G7 options: 27_004 = 64-byte palette + 2bpp tiles, DMA'd from $7F:A040 to VRAM $6000 (BG3 chars; size word in
+# the DMA list at 0x12651, room up to $7F:B000 where the 27_005 map is decompressed: 252 tiles). Map 27_005 32x32:
+# label rows 8/11/14/17/20 (2 tile rows each), cols 6-24 get their palette toggled when the cursor moves ($82:A66B),
+# so labels go in cols 6-18 and values in cols 19-24 (6 tiles). Value strings are copied from map rows 30-31:
+# difficulty ($82:A9D6: Easy col 0, Normal col 6, Hard col 12), partner ($82:A9DC: Off col 24, On col 18). Digits
+# for the stage / sound numbers come from ROM tables ($82:A9E0, $82:ABA8) and keep their tiles.
+OPT_ROWS = [8, 11, 14, 17, 20]
+OPT_VALUES = {"Easy": 0, "Normal": 6, "Hard": 12, "On": 18, "Off": 24}  # column in map rows 30-31
+OPT_DMA = 0x12651
+OPT_TILES = 252
+
+
+def gradient(img):
+    """0/1 text bitmap (16 rows) -> the options screen's colour bands: 1 above row 8, 2 to row 11, 3 below."""
+    return [[(1 if y < 8 else 2 if y < 12 else 3) if p else 0 for p in row] for y, row in enumerate(img)]
+
+
+def options(en, rom):
+    sheet_raw = extract.block(rom, 0x27, 4)
+    pal, tiles = sheet_raw[:64], [sheet_raw[64 + 16 * i:80 + 16 * i] for i in range((len(sheet_raw) - 64) // 16)]
+    w, h, words = extract.split_map(extract.block(rom, 0x27, 5))
+    text = {(r + dy, c) for r in OPT_ROWS for dy in (0, 1) for c in range(6, 25)} | \
+        {(r, c) for r in (30, 31) for c in range(32)}
+    keep = {words[r * w + c] & 0x3FF for r in range(h) for c in range(w) if (r, c) not in text}
+    for base, n in ((0x129E0, 19 * 12), (0x12BA8, 10 * 4)):  # digit tables
+        keep |= {(rom[base + 2 * i] | rom[base + 2 * i + 1] << 8) & 0x3FF for i in range(n)}
+    free = iter(t for t in range(1, OPT_TILES) if t not in keep)
+    tiles += [bytes(16)] * (OPT_TILES - len(tiles))
+    ids = {}
+
+    def put(img, row, col, attr):
+        for cy in range(2):
+            for cx in range(len(img[0]) // 8):
+                data = tile2(img, cx, cy)
+                if any(data) and data not in ids:
+                    ids[data] = next(free)
+                    tiles[ids[data]] = data
+                words[(row + cy) * w + col + cx] = attr | ids.get(data, 0)
+
+    def line(s, cols, x0=2):
+        assert x0 + font.width(s) <= cols * 8, f"G7: {s!r} wider than {cols} tiles"
+        img = [[0] * (cols * 8)] + font.render(s, x0, cols * 8)[:15]  # one row lower: cap height rows 3-12
+        return gradient(img)
+
+    labels_en, values_en = en["G7"][:5], en["G7"][5:]
+    for row, s in zip(OPT_ROWS, labels_en):
+        attr = next(words[row * w + c] & 0xFC00 for c in range(6, 19) if words[row * w + c] & 0x3FF)
+        put(line(s, 13), row, 6, attr)
+    order = dict(zip(["Hard", "Normal", "Easy", "On", "Off"], values_en))  # labels.json order: 難しい ふつう 易しい する しない
+    for key, col in OPT_VALUES.items():
+        put(line(order[key], 6, 0), 30, col, 0)
+    for row, key in ((8, "Normal"), (20, "Off")):  # what the screen shows before any value changes
+        for dy in (0, 1):
+            for k in range(6):
+                words[(row + dy) * w + 19 + k] = words[(30 + dy) * w + OPT_VALUES[key] + k]
+    data = pal + b"".join(tiles)
+    size = (len(data) - 64).to_bytes(2, "little")
+    return {(0x27, 4): data, (0x27, 5): extract.join_map(w, h, words)}, [(OPT_DMA, rom[OPT_DMA:OPT_DMA + 2], size)]
+
+
+# G9 staff roll: 24_002 sheet (2bpp, colour 1 text, 552 tiles: DMA list $81:CC3C copies 0x2280 bytes to VRAM
+# $6000), 24_003 = 9 screens back to back, each [w, h] then w*h BG words, decompressed to $7E:E800. Each screen has
+# a 20-byte record from 0xCB64 (stride 20): VRAM word address (BG map at $3C00, 32 wide), source address, bank,
+# bytes per row, rows, source stride. Screens may grow and move; the INTERBEC logo cells stay put on screen.
+STAFF_RECS = 0xCB64
+STAFF_SHEET = 8832
+# Per screen: (map row, x px, en line, part) - part 0/1 = before/after ": ", None = the whole line (wrapped to the
+# box, continuation 2 rows down).
+STAFF = [
+    [(0, 0, 0, 0), (0, 56, 0, 1)],
+    [(0, 0, 0, None), (4, 16, 1, None), (9, 0, 2, None), (12, 16, 3, None), (16, 16, 4, None), (20, 16, 5, None)],
+    [(0, 0, 0, None), (4, 0, 1, 0), (4, 56, 1, 1), (8, 0, 2, 0), (8, 56, 2, 1), (12, 0, 3, None), (14, 56, 4, None),
+     (18, 56, 5, None), (22, 56, 6, None)],
+    [(0, 0, 0, None), (2, 16, 1, 0), (4, 32, 1, 1), (2, 128, 2, 0), (4, 144, 2, 1), (6, 16, 3, 0), (8, 32, 3, 1),
+     (8, 144, 4, None)],
+    [(0, 0, 0, None), (3, 24, 1, None), (3, 136, 2, None), (7, 24, 3, None), (7, 136, 4, None)],
+    [(0, 0, 0, None), (4, 16, 1, None), (7, 16, 2, None), (10, 16, 3, None), (13, 16, 4, None), (16, 16, 5, None)],
+    [(0, 0, 0, None), (3, 8, 1, None), (3, 136, 2, None), (6, 136, 3, None), (9, 136, 4, None)],
+    [(0, 0, 0, None), (5, 16, 1, None), (9, 0, 2, None), (12, 16, 3, None)],  # line 4 = the logo, kept
+    [(0, 24, 0, None)],
+]
+STAFF_MAXW = {7: 15}  # side panel beside the picture: wrap instead of growing
+STAFF_LOGO_ROW = {7: 15}  # INTERBEC logo: rows 15-17 of screen 7, kept as drawn
+
+
+def staff(en, rom):
+    import insert
+    old_sheet = extract.block(rom, 0x24, 2)
+    raw = extract.block(rom, 0x24, 3)
+    sheet = Sheet(STAFF_SHEET // 16, blank=0)
+    out, patches, p = bytearray(), [], 0
+    for k, layout in enumerate(STAFF):
+        w0, h = raw[p] | raw[p + 1] << 8, raw[p + 2] | raw[p + 3] << 8
+        words0 = [raw[p + 4 + 2 * i] | raw[p + 5 + 2 * i] << 8 for i in range(w0 * h)]
+        p += 4 + 2 * w0 * h
+        lines = en[f"G9.{k}"]
+        items = []
+        for row, x, li, part in layout:
+            text = lines[li] if part is None else lines[li].split(": ", 1)[part]
+            wmax = STAFF_MAXW.get(k, 32) * 8 - x
+            for n, t in enumerate(insert.wrap(text, wmax) if font.width(text) > wmax else [text]):
+                items.append((row + 2 * n, x, t))
+        w = max(w0, max(-(-(x + font.width(t)) // 8) for _, x, t in items))
+        rec = STAFF_RECS + 20 * k
+        vram = rom[rec] | rom[rec + 1] << 8
+        row0, col0 = divmod(vram - 0x3C00, 32)
+        col = min(max(0, col0 - (w - w0) // 2), 32 - w)
+        img = canvas(w * 8, h * 8)
+        for row, x, t in items:
+            assert row * 8 + 16 <= h * 8, f"G9.{k}: {t!r} below the box"
+            blit(img, font.render(t), x, row * 8)
+        words = [0] * (w * h)
+        place(sheet, words, w, img, 0, 0)
+        for i, wd in enumerate(words0):  # the logo: same tiles, same place on screen
+            r, c = divmod(i, w0)
+            if wd & 0x3FF and r >= STAFF_LOGO_ROW.get(k, h):
+                t = wd & 0x3FF
+                words[r * w + c + col0 - col] = (wd & 0xFC00) | sheet.id(old_sheet[16 * t:16 * t + 16])
+        src = 0xE800 + len(out) + 4  # past the [w, h] header
+        out += extract.join_map(w, h, words)
+        new = (0x3C00 + row0 * 32 + col).to_bytes(2, "little") + src.to_bytes(2, "little") + bytes([0x7E, 2 * w, h, 2 * w])
+        assert rom[rec + 4] == 0x7E and rom[rec + 5] == 2 * w0 and rom[rec + 6] == h
+        patches.append((rec, rom[rec:rec + 8], new))
+    # 24_003 grows into $7E:F86C+; nothing writes there during the staff roll (ramwrites probe on the ending, 2026-10-26)
+    assert len(out) <= len(raw) + 0x200, f"staff maps: {len(out)} bytes"
+    return {(0x24, 2): sheet.data(STAFF_SHEET), (0x24, 3): bytes(out)}, patches
+
+
 RAW = {(0x01, 0), (0x01, 2)}  # blocks the game reads uncompressed (DMA straight from ROM)
 
 
@@ -177,7 +314,7 @@ def edits(rom):
     """(blocks {(cat, idx): unpacked bytes}, patches [(off, orig, new)]); blocks in RAW are stored as they are."""
     en = labels()
     blocks, patches = {}, []
-    for fn in (cards, gameover, banners):
+    for fn in (cards, gameover, banners, options, staff):
         b, p = fn(en, rom)
         blocks.update(b)
         patches += p
