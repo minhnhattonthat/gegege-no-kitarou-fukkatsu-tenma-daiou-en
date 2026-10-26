@@ -3,7 +3,7 @@
 Updated at the end of every session. Keep it to what the next session needs; history is in git.
 
 - **Phase:** 9 (release) done: `release/Gegege_no_Kitarou_Fukkatsu_Tenma_Daiou_EN_v1.0.zip` (BPS 175723 bytes +
-  README.txt; patched CRC32 B026EE6F), made by `tools/release.py`, all steps passed. Not published (user's call).
+  README.txt; patched CRC32 B026EE6F), made by `tools/release.py`, all steps passed. Published by the user 2026-10-26: GitHub release `v1.0`.
   Last builds (2026-10-26):
   `build/kitarou_en.sfc` (English captions + letter, smoke ok),
   `build/marker.sfc` (`build.py build/marker.sfc --marker`, smoke ok, every page shows its id) and
