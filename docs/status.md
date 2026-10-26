@@ -46,7 +46,10 @@ Updated at the end of every session. Keep it to what the next session needs; his
     18_013 (ending city shot; store names kept). `build.py` writes `build/kitarou_en.writes.txt`;
     `tests/test_build.py::test_writes_romdiff_clean` gates it with `romdiff.py --writes` (en + marker), plus a
     branch-into-hook scan. check.py 19 passed; tour on the EN build 59/59 arrived (`work/qa/tour/`).
-- **Next (phase 8, QA):** contact sheets per changed scene -> visual-qa agents -> `qa_gate.py check`; zoomed
+  - Phase 8 (part): tour EN + `work/qa/tour_jp`; 111 sheets, 4 visual-qa agents (`docs/visual-qa-brief.md` has the
+    game's non-bugs); `qa_gate.py check work/qa/manifest.tsv work/qa/verdicts` exits 0. Fixed: 2-cell boss banners
+    (Witch/Suiko/Tenko) drew with a gap -> `labels.banners` pads to 3 cells.
+- **Next (phase 8, QA):** zoomed
   cold-boot shot of every graphics-text row (cards, game over, banners, options, staff roll, title, partner,
   TV sign: drawn in 18_013 and checked offline, but no cut10 shot every 300 frames showed it; find its frame). Partner screen
   only shows the first partner (P2 cursor can't be driven headless; writing `$F1` after the joypad read did
@@ -56,7 +59,7 @@ Updated at the end of every session. Keep it to what the next session needs; his
   P2 joypad mirror `$F1` instead. The in-game loop checks the stage-clear flag only once the HUD is up. Pressing
   right/down on the partner screen with P1 input does nothing. Caption page time is reveal-driven (8 frames per
   2 columns, then a ~60-frame hold), so long pages just play longer; 20_051 is the exception (fixed copies).
-- **Open bugs:** none.
+- **Open bugs:** none. Open question for the user: HUD 鬼 icon kept (treated as icon, not text).
 - **Waiting on the user:** nothing blocking. Non-blocking: (1) shop signs in cutscene art 18_013 (テレビ, さくらや,
   NIPPO): default = テレビ -> TV only, keep store names. (2) Boss banners 15/16 (5-1, 5-2) and caption 27/50 use an
   invented alien script: default = keep as drawn. (3) Staff-roll name readings are unverified (labels.json notes);

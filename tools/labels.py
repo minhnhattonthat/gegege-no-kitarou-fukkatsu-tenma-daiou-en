@@ -160,6 +160,7 @@ def banners(en, rom):
             cells = rom[src:src + 64 * n]
         else:
             n = -(-(font.width(text) + 2) // 16)
+            n += n == 2  # the engine lays 2-cell banners out spaced (cell, gap, cell); 3 cells draw contiguous
             img = canvas(16 * n, 16)
             blit(img, bold(font.render(text, 0, font.width(text) + 1)), (16 * n - font.width(text) - 1) // 2, 0)
             cells = b"".join(tile_bytes(img, cx, cy) for cy in range(2) for cx in range(2 * n))
