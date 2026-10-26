@@ -39,7 +39,7 @@
  {"id": "G10.16", "block": "01_000", "scene": "boss16", "jp": ["{alien1}{alien1}{alien3}{alien4}・{alien2}{alien4}{alien2}{alien3}{alien4}"], "en": ["{alien1}{alien1}{alien3}{alien4}・{alien2}{alien4}{alien2}{alien3}{alien4}"], "notes": "5-2: the two names of caption 20_027; kept as drawn"},
  {"id": "G10.18", "block": "01_000", "scene": "boss18", "jp": ["天魔大王"], "en": ["Great King Tenma"], "notes": "6-2 final boss; 6-1 has no banner"},
  {"id": "G11", "block": "01_002", "scene": "gameover", "jp": ["ゲーム オーバー", "復活する", "復活しない"], "en": ["GAME OVER", "Revive", "Don’t Revive"], "notes": "game over: continue yes/no"},
- {"id": "G12", "block": "18_013", "scene": "cut10", "jp": ["テレビ", "さくらや", "NIPPO"], "en": ["TV", "Sakuraya", "NIPPO"], "notes": "shop signs in a city picture: テレビ -> TV, store names kept (non-blocking default)"},
+ {"id": "G12", "block": "18_013", "scene": "cut10", "jp": ["テレビ", "さくらや", "NIPPO", "ントン", "レイン"], "en": ["TV", "SAKURAYA", "NIPPO", "NTON", "RAIN"], "notes": "shop signs in the cut9 city picture, all romanised (D9) in a 3x5 pixel font: さくらや twice (vertical sign, plate under TV); ントン / レイン are cut off by the picture edge, so their romaji is too"},
  {"id": "G14", "block": "01_003", "scene": "stage0", "jp": ["鬼"], "en": ["ONI"], "notes": "HUD icon, left box of the status bar (16x16 engraved stone); D8: translated"},
  {"id": "G15.0", "block": "01_001", "scene": "", "jp": ["「ググッ」"], "en": ["“Ngh...!”"], "notes": "in-stage dialogue strip; list $8562 ($82:C652)"},
  {"id": "G15.1", "block": "01_001", "scene": "", "jp": ["「いかせるか」"], "en": ["“You won’t get away!”"], "notes": "in-stage dialogue strip; same list"},

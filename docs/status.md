@@ -62,8 +62,12 @@ Updated at the end of every session. Keep it to what the next session needs; his
   P2 joypad mirror `$F1` instead. The in-game loop checks the stage-clear flag only once the HUD is up. Pressing
   right/down on the partner screen with P1 input does nothing. Caption page time is reveal-driven (8 frames per
   2 columns, then a ~60-frame hold), so long pages just play longer; 20_051 is the exception (fixed copies).
-- **Open bugs:** none.
-- **Waiting on the user:** nothing blocking. Non-blocking: (1) shop signs in cutscene art 18_013 (テレビ, さくらや,
-  NIPPO, plus cut-off レイン.. / ..ントン): default = テレビ -> TV only, keep store names. (2) Boss banners 15/16 (5-1, 5-2) and caption 27/50 use an
-  invented alien script: default = keep as drawn. (3) Staff-roll name readings are unverified (labels.json notes);
-  default = Hepburn readings of the most common reading, flagged in the README.
+- **Open bugs:** none. Fixed (user report, save `work/states/bug_text.mss`): stage-0 boss banner garbled in real
+  play: `$84:8CF3` loads Tantanbo's strip as immediates (`LDA #$AC3A / LDA #$88DD`), not from the stage record the
+  bossN warps use; `labels.BANNER_IMM` patches them, `test_no_stale_strip_immediates` scans for any other copy.
+  The user's state already holds the old `$46` and the map in VRAM, so it keeps showing the garble; the fix shows
+  from the boss trigger on (`$46=$86DD` logged at f2426 of a stage0 warp).
+- **Waiting on the user:** nothing blocking. Non-blocking: (1) Boss banners 15/16 (5-1, 5-2) and caption 27/50
+  use an invented alien script: default = keep as drawn. (2) Staff-roll name readings are unverified (labels.json
+  notes); default = Hepburn readings of the most common reading, flagged in the README. City shop signs: all
+  romanised (D9).

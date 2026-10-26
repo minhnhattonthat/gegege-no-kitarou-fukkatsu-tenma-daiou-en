@@ -145,6 +145,9 @@ BANNER_RECS = [0x10D09, 0x10D23, 0x10D3B, 0x10D51, 0x10D73, 0x10D95, 0x10DAF, 0x
                0x10E29, 0x10E3F, 0x10E55, 0x10E6F, 0x10E85, 0x10EA7, None, 0x10ED3]
 BANNER_BASE, BANNER_SIZE = 0x2AC3A, 5120
 KEEP_DRAWN = ("{alien",)  # alien-script banners keep their original tiles
+# Banners that the boss code also loads as immediates (the bossN warps go through the record, real play through
+# these): stage 0 Tantanbo at $84:8CF3. Found by scanning for `A9 lo hi 85 44` / `A9 DD nn` (issue: garbled banner).
+BANNER_IMM = {0: 0x20CF3}
 
 
 def banners(en, rom):
@@ -162,6 +165,9 @@ def banners(en, rom):
             n, cells = strip(text, thick=True)
         new = (0xAC3A + len(data)).to_bytes(2, "little") + bytes([0xDD, n + 0x83])
         patches.append((off, rom[off:off + 4], new))
+        if stage in BANNER_IMM:  # the same banner as immediates in the boss code: `LDA #ptr : STA $44 : LDA #map : STA $46`
+            imm = BANNER_IMM[stage]
+            patches.append((imm, rom[imm:imm + 8], bytes([0xA9, *new[:2], 0x85, 0x44, 0xA9, *new[2:], ])))
         data += cells
     assert len(data) <= BANNER_SIZE, f"banners: {len(data)} bytes > {BANNER_SIZE}"
     return {(0x01, 0): bytes(data) + rom[BANNER_BASE + len(data):BANNER_BASE + BANNER_SIZE]}, patches
@@ -570,6 +576,31 @@ SIGN_TV = """
 """
 
 
+# The other signs in the picture, romanised in a 3x5 pixel font (the user's ruling, D9). Each: picture box
+# (x0, y0, x1, y1) cleared to `bg`, then the text in `ink` at (x, y); "rot" = turned 90 degrees clockwise (reads top
+# to bottom). The plate under the TV sign is widened left over the lamp pole: SAKURAYA needs 31 px, it had 18.
+PIX5 = {
+    "A": ".#.|#.#|###|#.#|#.#", "I": "###|.#.|.#.|.#.|###", "K": "#.#|#.#|##.|#.#|#.#", "N": "##.|#.#|#.#|#.#|#.#",
+    "O": "###|#.#|#.#|#.#|###", "R": "##.|#.#|##.|#.#|#.#", "S": "###|#..|###|..#|###", "T": "###|.#.|.#.|.#.|.#.",
+    "U": "#.#|#.#|#.#|#.#|###", "Y": "#.#|#.#|.#.|.#.|.#.",
+}
+CITY_SIGNS = [  # (en index in G12, box, bg, ink, x, y, rotated)
+    (3, (0, 35, 17, 42), 2, 10, 1, 36, False),  # ..ントン on the left wall, cut by the picture edge
+    (1, (21, 28, 26, 59), 10, 2, 21, 28, True),  # さくらや, red vertical sign under NIPPO
+    (1, (84, 67, 117, 74), 7, 3, 85, 68, False),  # さくらや plate under the TV sign (border 6 drawn round it)
+    (4, (118, 17, 128, 22), 12, 3, 118, 17, False),  # レイン.. top right, cut by the picture edge
+]
+
+
+def pix5(text, rot):
+    rows = [""] * 5
+    for k, ch in enumerate(text):
+        for r, line in enumerate(PIX5[ch].split("|")):
+            rows[r] += ("." if k else "") + line
+    img = [[1 if ch == "#" else 0 for ch in row] for row in rows]
+    return [[img[4 - c][r] for c in range(5)] for r in range(len(img[0]))] if rot else img
+
+
 def city_sign(en, rom):
     assert en["G12"][0] == "TV", "G12: the sign art is drawn for 'TV'"
     sheet = extract.block(rom, 0x18, 13)
@@ -583,6 +614,21 @@ def city_sign(en, rom):
     art = [[1 if ch == "#" else 0 for ch in line] for line in SIGN_TV.strip().splitlines()]
     pic.draw(art, x0, 24)
     pic.touch(x0, y0, x1, y1)
+    w, h = len(pic.img[0]), len(pic.img)
+    for k, (bx0, by0, bx1, by1), bg, ink, x, y, rot in CITY_SIGNS:
+        for yy in range(by0, by1):
+            for xx in range(bx0, bx1):
+                edge = bg == 7 and (yy in (by0, by1 - 1) or xx in (bx0, bx1 - 1))  # the plate's border
+                pic.img[yy][xx] = 6 if edge else bg
+        glyphs = pix5(en["G12"][k], rot)
+        if not rot and x + len(glyphs[0]) <= w:
+            assert x + len(glyphs[0]) <= bx1 and y + 5 <= by1, f"G12: {en['G12'][k]!r} too big for its sign"
+        assert not rot or y + len(glyphs) <= by1, f"G12: {en['G12'][k]!r} too long for its sign"
+        for dy, row in enumerate(glyphs):
+            for dx, p in enumerate(row):
+                if p and x + dx < w and y + dy < h:  # signs at the picture edge are cut off, like the Japanese
+                    pic.img[y + dy][x + dx] = ink
+        pic.touch(bx0, by0, bx1, by1)
     pic.commit(0)
     assert len(pic.tiles) == len(sheet)
     return {(0x18, 13): pic.blocks()[0]}, []

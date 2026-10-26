@@ -64,6 +64,20 @@ def test_hook_swallows_no_branch_target():
 
 
 @needs_rom
+def test_no_stale_strip_immediates():
+    """Every `LDA #ptr : STA $44 : LDA #$nnDD` that points into the banner/dialogue strips (raw 01_000/01_001) is
+    a pair some patched strip record also holds: a missed copy draws the new tiles through the old-width map."""
+    import re
+    import insert
+    rom = ROM.read_bytes()
+    out = build.build(rom, *insert.edits(rom, "en"))
+    recs = {out[o:o + 4] for o in range(0x8000, 0x18000) if out[o + 2] == 0xDD and 0xAC3A <= out[o] | out[o + 1] << 8 < 0xEFFA}
+    for m in re.finditer(rb"\xA9(..)\x85\x44\xA9(\xDD.)", out[:0x100000], re.S):
+        if 0xAC3A <= int.from_bytes(m[1], "little") < 0xEFFA:
+            assert m[1] + m[2] in recs, f"{m.start():#x}: strip {m[1].hex()} {m[2].hex()} matches no record"
+
+
+@needs_rom
 @pytest.mark.parametrize("mode", ["en", "marker"])
 def test_writes_romdiff_clean(mode):
     """romdiff gate: every changed byte is a logged write over the original bytes it expected, none overlap."""
