@@ -81,5 +81,12 @@ Captions 20, 32 and 46 are not referenced by any `e8 NN 25` in the scripts (prob
 stage; the first stage of each chapter (0, 1, 5, 8, 13, 15, 17) shows its card, row = chapter. - verified (`cardN`
 warps)
 
+In-stage dialogue strips (G15, not caption pages): `LDA #list : JSL $80:A4F4` runs a list of 6-byte records in
+bank $81 (`$81:8562-$81:870B`): `0000 0000 t` waits t frames; `addr map t` DMAs $200 bytes from `$85:addr`
+(raw 01_001) to VRAM $5008, the 256-byte BG3 map `$82:map` to $5300 and holds t frames; `0001 FFFF 0000` ends.
+`map` = `$nnDD` with nn = $83 + cells: one prebuilt centred map per width, 1-8 cells (`$85DD`, 2 cells, is
+spaced). Boss banners (G10) use the same strip + map format. 12 lists, callers listed in `labels.DLG_RECS`'s
+comment and labels.json G15 notes. - verified (disassembly, stage0 shot)
+
 In-stage captions: the stage scripts (`$81:A1DD`, `$81:DFB2`... `E8 80 25` / `E8 00 25`) also show caption pages
 over gameplay (0-1 boss intro). The warp logs every caption load as `caption 20_NNN at fF`.

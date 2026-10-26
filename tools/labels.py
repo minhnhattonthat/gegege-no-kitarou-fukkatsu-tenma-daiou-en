@@ -159,16 +159,47 @@ def banners(en, rom):
             src = BANNER_BASE + ptr - 0xAC3A
             cells = rom[src:src + 64 * n]
         else:
-            n = -(-(font.width(text) + 2) // 16)
-            n += n == 2  # the engine lays 2-cell banners out spaced (cell, gap, cell); 3 cells draw contiguous
-            img = canvas(16 * n, 16)
-            blit(img, bold(font.render(text, 0, font.width(text) + 1)), (16 * n - font.width(text) - 1) // 2, 0)
-            cells = b"".join(tile_bytes(img, cx, cy) for cy in range(2) for cx in range(2 * n))
+            n, cells = strip(text, thick=True)
         new = (0xAC3A + len(data)).to_bytes(2, "little") + bytes([0xDD, n + 0x83])
         patches.append((off, rom[off:off + 4], new))
         data += cells
     assert len(data) <= BANNER_SIZE, f"banners: {len(data)} bytes > {BANNER_SIZE}"
     return {(0x01, 0): bytes(data) + rom[BANNER_BASE + len(data):BANNER_BASE + BANNER_SIZE]}, patches
+
+
+def strip(text, thick):
+    """(n, tiles) of a centred G10/G15 strip. The map word $nnDD points at one prebuilt BG3 map per width in bank
+    $82 ($84DD = 1 cell .. $8BDD = 8) and the strip DMA is a fixed $200 bytes, so 8 cells is the limit."""
+    w = font.width(text)
+    n = -(-(w + 2) // 16)
+    n += n == 2  # the 2-cell map is spaced (cell, gap, cell); the 3-cell map draws contiguous
+    assert n <= 8, f"{text!r}: {w} px, over the 8-cell (126 px) strip"
+    img = canvas(16 * n, 16)
+    g = font.render(text, 0, w + 1)
+    blit(img, bold(g) if thick else g, (16 * n - w - 1) // 2, 0)
+    return n, b"".join(tile_bytes(img, cx, cy) for cy in range(2) for cx in range(2 * n))
+
+
+# G15 in-stage dialogue: raw 01_001 ($85:C03A, the archive list misreads it as packed), the same strips as G10. The
+# event lists in bank $81 ($81:8562-$81:870B, 6-byte records: delay / strip address, $nnDD map word, hold; 01 / FFFF
+# end) are started by `LDA #list : JSL $80:A4F4` (callers in banks $82/$84, two in bank $80 via $80:9AA4). One
+# record per strip, in list order; these are the offsets of their address words.
+DLG_RECS = [0x8568, 0x8574, 0x8588, 0x8594, 0x85A0, 0x85B4, 0x85C0, 0x85D4, 0x85E0, 0x85EC, 0x85F8, 0x8604,
+            0x8610, 0x8624, 0x8630, 0x863C, 0x8650, 0x865C, 0x8668, 0x867C, 0x8690, 0x86A4, 0x86B8, 0x86C4,
+            0x86D8, 0x86E4, 0x86F0, 0x8704]
+DLG_BASE, DLG_SIZE = 0x2C03A, 12224
+
+
+def dialogue(en, rom):
+    data, patches = bytearray(), []
+    for k, off in enumerate(DLG_RECS):
+        assert rom[off + 2] == 0xDD
+        (text,) = en[f"G15.{k}"]
+        n, cells = strip(text, thick=False)
+        patches.append((off, rom[off:off + 4], (0xC03A + len(data)).to_bytes(2, "little") + bytes([0xDD, n + 0x83])))
+        data += cells
+    assert len(data) <= DLG_SIZE, f"dialogue: {len(data)} bytes > {DLG_SIZE}"
+    return {(0x01, 1): bytes(data) + rom[DLG_BASE + len(data):DLG_BASE + DLG_SIZE]}, patches
 
 
 def tile2(img, cx, cy):
@@ -556,14 +587,47 @@ def city_sign(en, rom):
     return {(0x18, 13): pic.blocks()[0]}, []
 
 
-RAW = {(0x01, 0), (0x01, 2)}  # blocks the game reads uncompressed (DMA straight from ROM)
+# G14 HUD icon: raw 01_003 (planar 4bpp, DMA'd to VRAM $5000 = BG2 tiles $280+), the 16x16 鬼 = block tiles
+# $2E/$2F over $3E/$3F; colour 2 stone, 7 engraved ink, the right column and bottom row are the box edge (kept).
+HUD_BASE, HUD_TILES = 0x2F77A, (0x2E, 0x2F, 0x3E, 0x3F)
+HUD_ONI = """
+.##..#...#.##
+#..#.##..#.##
+#..#.##..#.##
+#..#.#.#.#.##
+#..#.#.#.#.##
+#..#.#..##.##
+#..#.#..##.##
+#..#.#...#.##
+.##..#...#.##
+"""
+
+
+def hud(en, rom):
+    assert en["G14"] == ["ONI"], "G14: the icon art is drawn for 'ONI'"
+    data = bytearray(rom[HUD_BASE:HUD_BASE + 4096])
+    tiles = [data[t * 32:t * 32 + 32] for t in HUD_TILES]
+    img = canvas(16, 16)
+    for k, b in enumerate(tiles):
+        for y in range(8):
+            for x in range(8):
+                v = sum(((b[(p // 2) * 16 + y * 2 + (p & 1)] >> (7 - x)) & 1) << p for p in range(4))
+                img[(k // 2) * 8 + y][(k % 2) * 8 + x] = 2 if v == 7 and x + (k % 2) * 8 < 15 else v
+    art = [[7 if ch == "#" else 0 for ch in line] for line in HUD_ONI.strip().splitlines()]
+    blit(img, art, 1, 3)
+    for k, t in enumerate(HUD_TILES):
+        data[t * 32:t * 32 + 32] = tile4(img, k % 2, k // 2)
+    return {(0x01, 3): bytes(data)}, []
+
+
+RAW = {(0x01, 0), (0x01, 1), (0x01, 2), (0x01, 3)}  # blocks the game reads uncompressed (DMA straight from ROM)
 
 
 def edits(rom):
     """(blocks {(cat, idx): unpacked bytes}, patches [(off, orig, new)]); blocks in RAW are stored as they are."""
     en = labels()
     blocks, patches = {}, []
-    for fn in (cards, gameover, banners, options, staff, title, partner, city_sign):
+    for fn in (cards, gameover, banners, options, staff, title, partner, city_sign, hud, dialogue):
         b, p = fn(en, rom)
         blocks.update(b)
         patches += p

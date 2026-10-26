@@ -20,7 +20,7 @@ import insert  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 FILES = ("captions", "intro", "labels")
 TOKEN = re.compile(r"\{alien\d\}")
-LABEL_CHARS = set(" !&'(),-./:?©’") | set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+LABEL_CHARS = set(" !&'(),-./:?©’“”") | set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
 
 
 def load():

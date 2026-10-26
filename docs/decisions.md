@@ -14,4 +14,5 @@ All of D1-D7 came as the owner's standing answers for one-shot runs (injected wi
 | D4 | 2026-10-26 | Abbreviations | engine work first (default), abbreviate | Skill default: engine work first; abbreviate only as a flagged last resort. |
 | D5 | 2026-10-26 | Graphics text left in Japanese | none (default), list | Translate all (titles, menus, banners, cards); keep the Japanese logo only if no official English version exists. |
 | D6 | 2026-10-26 | Specs and plans | need approval, pre-approved | Pre-approved: keep going through every checkpoint, report at the end. |
+| D8 | 2026-10-26 | HUD 鬼 icon (status bar) | keep as icon, redraw | Translate all: redrawn as ONI in the same engraved style. |
 | D7 | 2026-10-26 | Existing saves / savestates | user's saves, none | None provided; build the debug tool as usual. |

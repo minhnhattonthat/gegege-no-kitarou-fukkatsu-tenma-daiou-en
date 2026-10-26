@@ -39,4 +39,5 @@ Then return a short summary: counts, and the issues one per line.
 - Boss banners 5-1/5-2 and captions 20_027/20_050 use an invented alien script (glyphs, not Japanese): intended.
 - Ending city shot: store names (さくらや, NIPPO) kept on purpose; only the TV sign is English.
 - INTERBEC logo on the staff roll kept as drawn.
-- HUD 鬼 icon in the status bar: kept as an icon (same pixels as JP), not text to translate.
+- Title logo ゲゲゲの鬼太郎 / 復活!天魔大王 stays Japanese (no official English logo; D5, G6).
+- HUD icon in the status bar (left box): JP 鬼, redrawn as "ONI" on purpose (D8).
