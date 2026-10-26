@@ -46,25 +46,24 @@ Updated at the end of every session. Keep it to what the next session needs; his
     18_013 (ending city shot; store names kept). `build.py` writes `build/kitarou_en.writes.txt`;
     `tests/test_build.py::test_writes_romdiff_clean` gates it with `romdiff.py --writes` (en + marker), plus a
     branch-into-hook scan. check.py 19 passed; tour on the EN build 59/59 arrived (`work/qa/tour/`).
-  - Phase 8 (part): tour EN + `work/qa/tour_jp`; 111 sheets, 4 visual-qa agents (`docs/visual-qa-brief.md` has the
+  - Phase 8: tour EN + `work/qa/tour_jp`; 111 sheets, 4 visual-qa agents (`docs/visual-qa-brief.md` has the
     game's non-bugs); `qa_gate.py check work/qa/manifest.tsv work/qa/verdicts` exits 0. Fixed: 2-cell boss banners
     (Witch/Suiko/Tenko) drew with a gap -> `labels.banners` pads to 3 cells. HUD 鬼 icon redrawn ONI (D8,
     `labels.hud`, 01_003). Found and translated G15: 28 in-stage dialogue strips in raw 01_001 (the archive list
-    misreads it as packed, so the phase-1 survey missed it; format in text.md, `labels.dialogue`). Only the stage0
-    list (G15.16-18) is shot in the emulator; the other 11 lists play deep in stages (callers in labels.json notes)
-    and are checked offline by rendering the strips. Their speakers are guessed from the text.
-- **Next (phase 8, QA):** shoot the other G15 lists (find a warp/state per caller, or an agent playtest); zoomed
-  cold-boot shot of every graphics-text row (cards, game over, banners, options, staff roll, title, partner,
-  TV sign: drawn in 18_013 and checked offline, but no cut10 shot every 300 frames showed it; find its frame). Partner screen
-  only shows the first partner (P2 cursor can't be driven headless; writing `$F1` after the joypad read did
-  nothing) - the other 5 windows are checked offline by rendering 1D_00x, or find the cursor RAM var.
-  Optional polish from review: 20_018 "the me of this era", 20_061 wraps "Space / yokai".
+    misreads it as packed, so the phase-1 survey missed it; format in text.md, `labels.dialogue`).
+    `tools/debug/dlg_shots.py` shoots all 12 G15 lists in the engine by repointing the stage-0 caller
+    (`work/qa/dlg/sheet.png`). Full-res sheets of every graphics-text screen in `work/qa/zoom/` (cards, staff roll,
+    menus, title, TV sign = cut9 f1048+, partner windows rendered offline: P2 cursor can't be driven headless).
+    Staff screen 2 text moved 8 px off the left screen edge. Polish: 20_018 "my past self", 20_061 explicit breaks.
+    Gate covers tour + dlg + zoom (118 sheets). Smoke ok.
+- **Next (phase 9, release):** `tools/release.py` (gate, jp_left, debug tool off, patch + verify, README hashes).
+  G15 speakers are guessed from the text (each list's caller in labels.json notes); a playtest would confirm.
 - **Gotchas:** Mesen `--testRunner` has no port-2 input (`emu.setInput(x, 1)` lands on P1); warp.lua writes the
   P2 joypad mirror `$F1` instead. The in-game loop checks the stage-clear flag only once the HUD is up. Pressing
   right/down on the partner screen with P1 input does nothing. Caption page time is reveal-driven (8 frames per
   2 columns, then a ~60-frame hold), so long pages just play longer; 20_051 is the exception (fixed copies).
 - **Open bugs:** none.
 - **Waiting on the user:** nothing blocking. Non-blocking: (1) shop signs in cutscene art 18_013 (テレビ, さくらや,
-  NIPPO): default = テレビ -> TV only, keep store names. (2) Boss banners 15/16 (5-1, 5-2) and caption 27/50 use an
+  NIPPO, plus cut-off レイン.. / ..ントン): default = テレビ -> TV only, keep store names. (2) Boss banners 15/16 (5-1, 5-2) and caption 27/50 use an
   invented alien script: default = keep as drawn. (3) Staff-roll name readings are unverified (labels.json notes);
   default = Hepburn readings of the most common reading, flagged in the README.
