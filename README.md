@@ -9,6 +9,18 @@ no game data you can play; you need your own dump of the Japanese game.
 **Found a bug?** [Report it](../../issues/new/choose): untranslated text, typos, overflow, crashes. Attaching a savestate
 helps most.
 
+## Translation status
+
+| Part | Status |
+|---|---|
+| Cutscene captions and the intro letter | Translated |
+| In-stage dialogue | Translated |
+| Title screen, menus, options, partner select, game over | Translated (title logo romanised: "GeGeGe no Kitaro" / "Fukkatsu! Tenma Daio") |
+| Chapter cards, boss names, HUD icon, city signs | Translated (the invented alien script on two boss names and two captions is kept as drawn, as in the original) |
+| Staff roll | Translated (name readings are best guesses; corrections welcome) |
+
+Known issues: none known; [report one](../../issues/new/choose).
+
 ## What's here
 
 | Path | What it is |
